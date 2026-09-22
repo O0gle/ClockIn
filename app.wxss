@@ -1,0 +1,80 @@
+/**app.wxss**/
+page {
+  background-color: #f6f8fb;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  color: #1e293b;
+  box-sizing: border-box;
+  -webkit-font-smoothing: antialiased;
+}
+
+view, text, scroll-view, input, button {
+  box-sizing: border-box;
+}
+
+/* 通用卡片阴影与圆角 */
+.card {
+  background: #ffffff;
+  border-radius: 24rpx;
+  padding: 32rpx;
+  margin-bottom: 24rpx;
+  box-shadow: 0 4rpx 24rpx rgba(15, 23, 42, 0.05);
+  transition: all 0.2s ease;
+}
+
+.card:active {
+  transform: scale(0.998);
+}
+
+/* 标签通用样式 */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6rpx 16rpx;
+  border-radius: 12rpx;
+  font-size: 22rpx;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.badge-success {
+  background-color: #ecfdf5;
+  color: #059669;
+  border: 1rpx solid #a7f3d0;
+}
+
+.badge-warning {
+  background-color: #fffbeb;
+  color: #d97706;
+  border: 1rpx solid #fde68a;
+}
+
+.badge-accent {
+  background-color: #f5f3ff;
+  color: #7c3aed;
+  border: 1rpx solid #ddd6fe;
+}
+
+.badge-danger {
+  background-color: #fef2f2;
+  color: #dc2626;
+  border: 1rpx solid #fecaca;
+}
+
+.badge-info {
+  background-color: #eff6ff;
+  color: #2563eb;
+  border: 1rpx solid #bfdbfe;
+}
+
+.badge-default {
+  background-color: #f1f5f9;
+  color: #64748b;
+  border: 1rpx solid #e2e8f0;
+}
+
+/* 通用按压动效 */
+.hover-effect {
+  opacity: 0.8;
+  transform: scale(0.98);
+}

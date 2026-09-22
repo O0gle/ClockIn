@@ -1,0 +1,42 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/records/records",
+    "pages/settings/settings",
+    "pages/logs/logs"
+  ],
+  "window": {
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "弹性打卡助手",
+    "navigationBarBackgroundColor": "#ffffff",
+    "backgroundColor": "#f8fafc"
+  },
+  "tabBar": {
+    "color": "#8c9099",
+    "selectedColor": "#1677ff",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "white",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "打卡",
+        "iconPath": "images/tab-punch.png",
+        "selectedIconPath": "images/tab-punch-active.png"
+      },
+      {
+        "pagePath": "pages/records/records",
+        "text": "明细",
+        "iconPath": "images/tab-record.png",
+        "selectedIconPath": "images/tab-record-active.png"
+      },
+      {
+        "pagePath": "pages/settings/settings",
+        "text": "设置",
+        "iconPath": "images/tab-setting.png",
+        "selectedIconPath": "images/tab-setting-active.png"
+      }
+    ]
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}

@@ -1,0 +1,694 @@
+/* pages/index/index.wxss */
+
+.page-container {
+  min-height: 100vh;
+  padding: 24rpx 24rpx 60rpx;
+  box-sizing: border-box;
+}
+
+/* 1. 时钟卡片 */
+.clock-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 36rpx 32rpx;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border: 1rpx solid rgba(226, 232, 240, 0.8);
+}
+
+.date-row {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20rpx;
+}
+
+.date-badge {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.date-text {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #334155;
+}
+
+.weekday-text {
+  font-size: 24rpx;
+  color: #64748b;
+  background: #f1f5f9;
+  padding: 4rpx 14rpx;
+  border-radius: 8rpx;
+}
+
+.rule-tag {
+  background: #eff6ff;
+  border: 1rpx solid #bfdbfe;
+  padding: 6rpx 16rpx;
+  border-radius: 20rpx;
+}
+
+.rule-tag-text {
+  font-size: 22rpx;
+  color: #2563eb;
+  font-weight: 500;
+}
+
+.time-display {
+  margin: 10rpx 0 20rpx;
+}
+
+.digital-time {
+  font-size: 80rpx;
+  font-weight: 700;
+  color: #0f172a;
+  letter-spacing: 2rpx;
+  font-variant-numeric: tabular-nums;
+  font-family: -apple-system, BlinkMacSystemFont, 'DIN Alternate', 'SF Pro Display', sans-serif;
+}
+
+/* 状态药丸 */
+.state-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 12rpx;
+  padding: 10rpx 28rpx;
+  border-radius: 30rpx;
+  font-size: 24rpx;
+  font-weight: 500;
+}
+
+.state-dot {
+  width: 14rpx;
+  height: 14rpx;
+  border-radius: 50%;
+}
+
+.state-unpunched {
+  background: #f1f5f9;
+  color: #64748b;
+}
+.state-unpunched .state-dot {
+  background: #94a3b8;
+}
+
+.state-working {
+  background: #ecfdf5;
+  color: #059669;
+}
+.state-working .state-dot {
+  background: #10b981;
+  box-shadow: 0 0 12rpx #10b981;
+  animation: pulse 1.5s infinite;
+}
+
+.state-off_work {
+  background: #eff6ff;
+  color: #2563eb;
+}
+.state-off_work .state-dot {
+  background: #3b82f6;
+}
+
+.state-overtime {
+  background: #fff7ed;
+  color: #ea580c;
+}
+.state-overtime .state-dot {
+  background: #f97316;
+  box-shadow: 0 0 12rpx #f97316;
+  animation: pulse 1.2s infinite;
+}
+
+@keyframes pulse {
+  0% { transform: scale(0.9); opacity: 0.7; }
+  50% { transform: scale(1.3); opacity: 1; }
+  100% { transform: scale(0.9); opacity: 0.7; }
+}
+
+/* 2. 打卡大按钮区 */
+.action-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 44rpx 32rpx 36rpx;
+}
+
+.button-wrapper {
+  margin: 10rpx 0 24rpx;
+}
+
+.punch-circle {
+  width: 320rpx;
+  height: 320rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  position: relative;
+  transition: all 0.25s ease;
+  user-select: none;
+}
+
+.punch-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 上班打卡: 蓝青色渐变 */
+.punch-in {
+  background: linear-gradient(135deg, #1677ff 0%, #0ea5e9 100%);
+  box-shadow: 0 16rpx 40rpx rgba(22, 119, 255, 0.35);
+}
+
+/* 下班打卡: 翠绿/青绿渐变 */
+.punch-out {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  box-shadow: 0 16rpx 40rpx rgba(16, 185, 129, 0.35);
+}
+
+/* 更新下班卡: 典雅蓝紫渐变 */
+.punch-done {
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  box-shadow: 0 16rpx 40rpx rgba(99, 102, 241, 0.3);
+}
+
+.punch-hover {
+  transform: scale(0.95);
+  box-shadow: 0 8rpx 20rpx rgba(0, 0, 0, 0.2);
+}
+
+.punch-title {
+  font-size: 42rpx;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 8rpx;
+  letter-spacing: 2rpx;
+}
+
+.punch-time-hint {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.95);
+  margin-bottom: 10rpx;
+  font-variant-numeric: tabular-nums;
+}
+
+.punch-rule-sub {
+  font-size: 20rpx;
+  color: rgba(255, 255, 255, 0.8);
+  padding: 0 16rpx;
+}
+
+/* 在岗状态子栏 */
+.status-sub-bar {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  background: #f8fafc;
+  border-radius: 16rpx;
+  padding: 20rpx 16rpx;
+  margin-top: 16rpx;
+  border: 1rpx solid #e2e8f0;
+}
+
+.sub-bar-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.sub-label {
+  font-size: 22rpx;
+  color: #64748b;
+  margin-bottom: 6rpx;
+}
+
+.sub-value {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.text-primary {
+  color: #2563eb;
+}
+
+.text-success {
+  color: #059669;
+}
+
+.sub-bar-divider {
+  width: 2rpx;
+  height: 48rpx;
+  background: #cbd5e1;
+}
+
+/* 3. 今日考勤指标四宫格 */
+.metrics-card {
+  padding: 32rpx;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 28rpx;
+}
+
+.card-title-group {
+  display: flex;
+  align-items: baseline;
+  gap: 16rpx;
+}
+
+.card-title {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.card-subtitle {
+  font-size: 24rpx;
+  color: #94a3b8;
+}
+
+.edit-btn {
+  display: flex;
+  align-items: center;
+  gap: 6rpx;
+  background: #f1f5f9;
+  padding: 10rpx 20rpx;
+  border-radius: 24rpx;
+}
+
+.edit-icon {
+  font-size: 24rpx;
+  color: #2563eb;
+}
+
+.edit-text {
+  font-size: 24rpx;
+  color: #2563eb;
+  font-weight: 500;
+}
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20rpx;
+}
+
+.metric-item {
+  background: #f8fafc;
+  border-radius: 20rpx;
+  padding: 24rpx;
+  border: 1rpx solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+}
+
+.metric-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12rpx;
+}
+
+.metric-label {
+  font-size: 24rpx;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.metric-value {
+  font-size: 40rpx;
+  font-weight: 700;
+  color: #94a3b8;
+  margin-bottom: 6rpx;
+  font-variant-numeric: tabular-nums;
+  font-family: -apple-system, BlinkMacSystemFont, 'DIN Alternate', sans-serif;
+}
+
+.metric-value.val-active {
+  color: #0f172a;
+}
+
+.metric-hint {
+  font-size: 20rpx;
+  color: #94a3b8;
+}
+
+/* 加班突出格 */
+.highlight-item {
+  background: #fff7ed;
+  border: 1rpx solid #fed7aa;
+}
+
+.highlight-item .metric-label {
+  color: #ea580c;
+}
+
+.highlight-item .ot-value {
+  color: #ea580c;
+}
+
+.highlight-item .metric-hint {
+  color: #f97316;
+}
+
+/* 出勤工时总结行 */
+.work-duration-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f1f5f9;
+  border-radius: 16rpx;
+  padding: 20rpx 24rpx;
+  margin-top: 24rpx;
+}
+
+.work-summary-left {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8rpx;
+}
+
+.summary-label {
+  font-size: 26rpx;
+  color: #475569;
+}
+
+.summary-val {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.summary-sub {
+  font-size: 22rpx;
+  color: #64748b;
+}
+
+/* 4. 规则卡片 */
+.rule-card {
+  padding: 32rpx;
+}
+
+.rule-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24rpx;
+}
+
+.rule-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.rule-icon {
+  font-size: 32rpx;
+}
+
+.rule-header-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.rule-toggle-icon {
+  font-size: 22rpx;
+  color: #94a3b8;
+}
+
+/* 可视化时间轴 */
+.timeline-visual {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16rpx;
+  margin-bottom: 16rpx;
+}
+
+.tl-segment {
+  border-radius: 16rpx;
+  padding: 18rpx 20rpx;
+  display: flex;
+  flex-direction: column;
+}
+
+.tl-morning {
+  background: #eff6ff;
+  border-left: 6rpx solid #3b82f6;
+}
+.tl-lunch {
+  background: #f8fafc;
+  border-left: 6rpx solid #94a3b8;
+}
+.tl-evening {
+  background: #ecfdf5;
+  border-left: 6rpx solid #10b981;
+}
+.tl-overtime {
+  background: #fff7ed;
+  border-left: 6rpx solid #f97316;
+}
+
+.tl-title {
+  font-size: 26rpx;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 4rpx;
+}
+
+.tl-desc {
+  font-size: 20rpx;
+  color: #64748b;
+}
+
+/* 规则详情折叠列表 */
+.rule-detail-list {
+  border-top: 1rpx dashed #e2e8f0;
+  padding-top: 20rpx;
+  margin-top: 16rpx;
+}
+
+.rule-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 16rpx;
+  margin-bottom: 16rpx;
+}
+
+.rule-bullet {
+  width: 10rpx;
+  height: 10rpx;
+  background: #3b82f6;
+  border-radius: 50%;
+  margin-top: 14rpx;
+  flex-shrink: 0;
+}
+
+.rule-content {
+  flex: 1;
+  font-size: 24rpx;
+  line-height: 1.5;
+}
+
+.rule-name {
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.rule-text {
+  color: #475569;
+}
+
+/* 5. 底部工具栏 */
+.bottom-tools {
+  padding: 28rpx 32rpx;
+}
+
+.remark-row {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 24rpx;
+  font-size: 24rpx;
+}
+
+.remark-label {
+  color: #64748b;
+  flex-shrink: 0;
+}
+
+.remark-content {
+  color: #334155;
+  flex: 1;
+}
+
+.quick-btn-row {
+  display: flex;
+  gap: 20rpx;
+}
+
+.quick-btn {
+  flex: 1;
+  font-size: 26rpx;
+  font-weight: 500;
+  border-radius: 16rpx;
+  padding: 16rpx 0;
+  line-height: 1.4;
+  border: 1rpx solid #cbd5e1;
+  background: #ffffff;
+  color: #334155;
+}
+
+.quick-btn.primary {
+  background: #1677ff;
+  color: #ffffff;
+  border: none;
+}
+
+/* 弹窗样式 */
+.modal-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(15, 23, 42, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 40rpx;
+  box-sizing: border-box;
+}
+
+.modal-dialog {
+  width: 100%;
+  max-width: 620rpx;
+  background: #ffffff;
+  border-radius: 28rpx;
+  overflow: hidden;
+  box-shadow: 0 20rpx 50rpx rgba(0, 0, 0, 0.2);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 32rpx 36rpx 20rpx;
+  border-bottom: 1rpx solid #f1f5f9;
+}
+
+.modal-title {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.modal-close {
+  font-size: 36rpx;
+  color: #94a3b8;
+  padding: 10rpx;
+}
+
+.modal-body {
+  padding: 32rpx 36rpx;
+}
+
+.form-item {
+  margin-bottom: 24rpx;
+}
+
+.form-label {
+  display: block;
+  font-size: 26rpx;
+  color: #475569;
+  font-weight: 500;
+  margin-bottom: 12rpx;
+}
+
+.picker-input {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f8fafc;
+  border: 1rpx solid #cbd5e1;
+  border-radius: 16rpx;
+  padding: 22rpx 24rpx;
+}
+
+.picker-val {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.picker-placeholder {
+  font-size: 28rpx;
+  color: #94a3b8;
+}
+
+.picker-arrow {
+  font-size: 20rpx;
+  color: #94a3b8;
+}
+
+.text-input {
+  background: #f8fafc;
+  border: 1rpx solid #cbd5e1;
+  border-radius: 16rpx;
+  padding: 20rpx 24rpx;
+  font-size: 28rpx;
+  color: #0f172a;
+}
+
+.rule-hint-box {
+  background: #eff6ff;
+  border-radius: 14rpx;
+  padding: 16rpx 20rpx;
+  margin-top: 10rpx;
+}
+
+.rule-hint-text {
+  font-size: 22rpx;
+  color: #2563eb;
+  line-height: 1.4;
+}
+
+.modal-footer {
+  display: flex;
+  border-top: 1rpx solid #f1f5f9;
+  padding: 24rpx 36rpx 32rpx;
+  gap: 20rpx;
+}
+
+.btn-cancel {
+  flex: 1;
+  background: #f1f5f9;
+  color: #64748b;
+  font-size: 28rpx;
+  border-radius: 16rpx;
+  border: none;
+}
+
+.btn-confirm {
+  flex: 1;
+  background: #1677ff;
+  color: #ffffff;
+  font-size: 28rpx;
+  font-weight: 600;
+  border-radius: 16rpx;
+  border: none;
+}

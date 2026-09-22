@@ -1,0 +1,16 @@
+# WeChat DevTools
+project.private.config.json
+
+# Node & Dependencies
+node_modules/
+miniprogram_npm/
+
+# Logs & System
+*.log
+.DS_Store
+Thumbs.db
+
+# IDE & Tools
+.vscode/
+.idea/
+.claude/

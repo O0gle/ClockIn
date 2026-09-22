@@ -1,0 +1,260 @@
+<!--pages/index/index.wxml-->
+<scroll-view class="page-container" scroll-y>
+  <!-- 1. 顶部日期与实时数字时钟 -->
+  <view class="clock-header card">
+    <view class="date-row">
+      <view class="date-badge">
+        <text class="date-text">{{currentDateText}}</text>
+        <text class="weekday-text">{{weekDayText}}</text>
+      </view>
+      <view class="rule-tag">
+        <text class="rule-tag-text">弹性制 · 满7.5h</text>
+      </view>
+    </view>
+    <view class="time-display">
+      <text class="digital-time">{{currentTimeText}}</text>
+    </view>
+    <view class="state-pill state-{{workState}}">
+      <view class="state-dot"></view>
+      <text class="state-text">{{workStateText}}</text>
+    </view>
+  </view>
+
+  <!-- 2. 打卡主动作按钮区 -->
+  <view class="action-card card">
+    <view class="button-wrapper">
+      <!-- 状态A: 尚未打上班卡 -->
+      <view wx:if="{{!record.signInTime}}" class="punch-circle punch-in" hover-class="punch-hover" bindtap="handlePunchIn">
+        <view class="punch-ripple"></view>
+        <view class="punch-inner">
+          <text class="punch-title">上班打卡</text>
+          <text class="punch-time-hint">{{currentTimeText}}</text>
+          <text class="punch-rule-sub">弹性区间 08:00 ~ 09:00</text>
+        </view>
+      </view>
+
+      <!-- 状态B: 已打上班卡，尚未打下班卡 -->
+      <view wx:elif="{{!record.signOutTime}}" class="punch-circle punch-out" hover-class="punch-hover" bindtap="handlePunchOut">
+        <view class="punch-ripple"></view>
+        <view class="punch-inner">
+          <text class="punch-title">下班打卡</text>
+          <text class="punch-time-hint">{{currentTimeText}}</text>
+          <text class="punch-rule-sub">预计满工时: {{record.expectedSignOutTime || '18:00'}}</text>
+        </view>
+      </view>
+
+      <!-- 状态C: 已打下班卡 -->
+      <view wx:else class="punch-circle punch-done" hover-class="punch-hover" bindtap="handlePunchOut">
+        <view class="punch-inner">
+          <text class="punch-title">更新下班卡</text>
+          <text class="punch-time-hint">{{currentTimeText}}</text>
+          <text class="punch-rule-sub">原下班: {{record.signOutTime}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 实时动态提示 -->
+    <view class="status-sub-bar" wx:if="{{record.signInTime && !record.signOutTime}}">
+      <view class="sub-bar-item">
+        <text class="sub-label">已在岗工作</text>
+        <text class="sub-value">{{elapsedWorkText || '计算中...'}}</text>
+      </view>
+      <view class="sub-bar-divider"></view>
+      <view class="sub-bar-item">
+        <text class="sub-label">下班倒计时</text>
+        <text class="sub-value {{remainingWorkText === '已达标' ? 'text-success' : 'text-primary'}}">{{remainingWorkText || '--'}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 3. 今日核心指标卡片 (四宫格) -->
+  <view class="metrics-card card">
+    <view class="card-header">
+      <view class="card-title-group">
+        <text class="card-title">今日考勤明细</text>
+        <text class="card-subtitle">{{todayDate}}</text>
+      </view>
+      <view class="edit-btn" hover-class="hover-effect" bindtap="openEditModal">
+        <text class="edit-icon">✎</text>
+        <text class="edit-text">补卡 / 修改</text>
+      </view>
+    </view>
+
+    <view class="metrics-grid">
+      <!-- 1. 上班打卡 -->
+      <view class="metric-item">
+        <view class="metric-top">
+          <text class="metric-label">上班打卡</text>
+          <text class="badge badge-{{record.signInTagType || 'default'}}">{{record.signInStatusText || '未打卡'}}</text>
+        </view>
+        <text class="metric-value {{record.signInTime ? 'val-active' : ''}}">{{record.signInTime || '--:--'}}</text>
+        <text class="metric-hint">基准 08:30 (±30m)</text>
+      </view>
+
+      <!-- 2. 预计下班 -->
+      <view class="metric-item">
+        <view class="metric-top">
+          <text class="metric-label">预计下班</text>
+          <text class="badge badge-info">满7.5h工时</text>
+        </view>
+        <text class="metric-value {{record.expectedSignOutTime ? 'val-active' : ''}}">{{record.expectedSignOutTime || '--:--'}}</text>
+        <text class="metric-hint">弹性满工时下班点</text>
+      </view>
+
+      <!-- 3. 实际下班 -->
+      <view class="metric-item">
+        <view class="metric-top">
+          <text class="metric-label">下班打卡</text>
+          <text class="badge badge-{{record.signOutTagType || 'default'}}">{{record.signOutStatusText || '未打卡'}}</text>
+        </view>
+        <text class="metric-value {{record.signOutTime ? 'val-active' : ''}}">{{record.signOutTime || '--:--'}}</text>
+        <text class="metric-hint">基准 18:00 (±30m)</text>
+      </view>
+
+      <!-- 4. 加班时长 (从19:00起算，高亮突出) -->
+      <view class="metric-item highlight-item">
+        <view class="metric-top">
+          <text class="metric-label">加班时长</text>
+          <text class="badge badge-accent">19:00起计</text>
+        </view>
+        <text class="metric-value ot-value">{{record.overtimeText || '0分钟'}}</text>
+        <text class="metric-hint">19:00前不计加班</text>
+      </view>
+    </view>
+
+    <!-- 工作总时长展示行 -->
+    <view class="work-duration-bar" wx:if="{{record.signInTime && record.signOutTime}}">
+      <view class="work-summary-left">
+        <text class="summary-label">实际出勤工时：</text>
+        <text class="summary-val">{{record.workText}}</text>
+        <text class="summary-sub">(已扣午休2小时)</text>
+      </view>
+      <view class="work-status-badge">
+        <text class="badge badge-{{record.overtimeMinutes > 0 ? 'accent' : 'success'}}">
+          {{record.overtimeMinutes > 0 ? '含加班' : '工时正常'}}
+        </text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 4. 弹性与加班规则可视化卡片 -->
+  <view class="rule-card card">
+    <view class="rule-card-header" bindtap="toggleRuleDetail">
+      <view class="rule-header-left">
+        <text class="rule-icon">⏱</text>
+        <text class="rule-header-title">打卡与弹性规则说明</text>
+      </view>
+      <text class="rule-toggle-icon">{{showRuleDetail ? '▲' : '▼'}}</text>
+    </view>
+
+    <!-- 可视化时间轴示意图 -->
+    <view class="timeline-visual">
+      <view class="tl-segment tl-morning">
+        <text class="tl-title">08:00 ~ 09:00</text>
+        <text class="tl-desc">弹性上班 (基准08:30)</text>
+      </view>
+      <view class="tl-segment tl-lunch">
+        <text class="tl-title">11:40 ~ 13:40</text>
+        <text class="tl-desc">午休2小时 (不计工时)</text>
+      </view>
+      <view class="tl-segment tl-evening">
+        <text class="tl-title">17:30 ~ 18:30</text>
+        <text class="tl-desc">弹性下班 (满7.5h)</text>
+      </view>
+      <view class="tl-segment tl-overtime">
+        <text class="tl-title">19:00 开始</text>
+        <text class="tl-desc">计入加班时长</text>
+      </view>
+    </view>
+
+    <!-- 展开的详细规则列表 -->
+    <view class="rule-detail-list" wx:if="{{showRuleDetail}}">
+      <view class="rule-item">
+        <view class="rule-bullet"></view>
+        <view class="rule-content">
+          <text class="rule-name">上班弹性机制：</text>
+          <text class="rule-text">基准 08:30，前后各弹性半小时 (08:00 ~ 09:00)。早于08:00以08:00起计；晚于09:00记为迟到。</text>
+        </view>
+      </view>
+      <view class="rule-item">
+        <view class="rule-bullet"></view>
+        <view class="rule-content">
+          <text class="rule-name">午休不计工时：</text>
+          <text class="rule-text">中午 11:40 到 13:40 为休息时间，共2小时，自动从实际工作时长中扣除。</text>
+        </view>
+      </view>
+      <view class="rule-item">
+        <view class="rule-bullet"></view>
+        <view class="rule-content">
+          <text class="rule-name">下班满7.5h弹性机制：</text>
+          <text class="rule-text">08:00打卡17:30可下班；08:30打卡18:00下班；09:00打卡18:30下班，动态推算预计下班时间。</text>
+        </view>
+      </view>
+      <view class="rule-item">
+        <view class="rule-bullet"></view>
+        <view class="rule-content">
+          <text class="rule-name">加班时长计算：</text>
+          <text class="rule-text">晚上加班从 19:00 开始起算，19:00 之前（如晚餐与休息缓冲期）不计入加班时长。</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 5. 底部快捷操作与备注 -->
+  <view class="bottom-tools card">
+    <view class="remark-row">
+      <text class="remark-label">今日备注：</text>
+      <text class="remark-content">{{record.remark || '无备注 (可点击补卡添加)'}}</text>
+    </view>
+    <view class="quick-btn-row">
+      <button class="quick-btn" hover-class="hover-effect" bindtap="openEditModal">✍ 补录/修改</button>
+      <button class="quick-btn primary" hover-class="hover-effect" bindtap="goToRecords">📊 查看明细与月报</button>
+    </view>
+  </view>
+</scroll-view>
+
+<!-- 补卡/修改弹窗 -->
+<view class="modal-mask" wx:if="{{showEditModal}}" bindtap="closeEditModal">
+  <view class="modal-dialog" catchtap="true">
+    <view class="modal-header">
+      <text class="modal-title">补卡 / 修改今日打卡</text>
+      <text class="modal-close" bindtap="closeEditModal">✕</text>
+    </view>
+
+    <view class="modal-body">
+      <view class="form-item">
+        <text class="form-label">上班打卡时间</text>
+        <picker mode="time" value="{{editSignInTime}}" bindchange="onEditSignInChange">
+          <view class="picker-input">
+            <text class="{{editSignInTime ? 'picker-val' : 'picker-placeholder'}}">{{editSignInTime || '点击选择时间'}}</text>
+            <text class="picker-arrow">▼</text>
+          </view>
+        </picker>
+      </view>
+
+      <view class="form-item">
+        <text class="form-label">下班打卡时间</text>
+        <picker mode="time" value="{{editSignOutTime}}" bindchange="onEditSignOutChange">
+          <view class="picker-input">
+            <text class="{{editSignOutTime ? 'picker-val' : 'picker-placeholder'}}">{{editSignOutTime || '点击选择时间 (可选)'}}</text>
+            <text class="picker-arrow">▼</text>
+          </view>
+        </picker>
+      </view>
+
+      <view class="form-item">
+        <text class="form-label">备注 (例如：外勤、补卡、事假)</text>
+        <input class="text-input" placeholder="可输入备注信息" value="{{editRemark}}" bindinput="onEditRemarkChange" />
+      </view>
+
+      <view class="rule-hint-box">
+        <text class="rule-hint-text">💡 提示：保存后系统将自动按 08:00~09:00弹性、扣除11:40~13:40午休、从19:00起计加班重算各项指标。</text>
+      </view>
+    </view>
+
+    <view class="modal-footer">
+      <button class="btn-cancel" bindtap="closeEditModal">取消</button>
+      <button class="btn-confirm" bindtap="saveEditRecord">保存记录</button>
+    </view>
+  </view>
+</view>

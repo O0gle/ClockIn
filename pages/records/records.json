@@ -1,0 +1,6 @@
+{
+  "usingComponents": {},
+  "navigationBarTitleText": "打卡明细与统计",
+  "enablePullDownRefresh": true,
+  "backgroundTextStyle": "dark"
+}

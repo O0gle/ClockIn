@@ -1,0 +1,189 @@
+<!--pages/settings/settings.wxml-->
+<scroll-view class="settings-container" scroll-y>
+  <!-- 1. 当前生效规则速览卡片 -->
+  <view class="rules-summary-card card">
+    <view class="summary-top">
+      <text class="summary-badge">当前生效规则</text>
+      <text class="reset-link" bindtap="resetToDefault">恢复默认</text>
+    </view>
+    <view class="summary-grid">
+      <view class="sum-item">
+        <text class="sum-label">弹性上班区间</text>
+        <text class="sum-val">{{flexStartRangeText}}</text>
+        <text class="sum-hint">基准 {{settings.baseStartTime}} (±{{settings.startFlexMinutes}}m)</text>
+      </view>
+      <view class="sum-item">
+        <text class="sum-label">午休不计工时</text>
+        <text class="sum-val">{{settings.lunchStart}} ~ {{settings.lunchEnd}}</text>
+        <text class="sum-hint">扣除 {{lunchDurationText}}</text>
+      </view>
+      <view class="sum-item">
+        <text class="sum-label">弹性下班区间</text>
+        <text class="sum-val">{{flexEndRangeText}}</text>
+        <text class="sum-hint">满 {{standardWorkText}}</text>
+      </view>
+      <view class="sum-item sum-overtime">
+        <text class="sum-label ot-color">加班起算时间</text>
+        <text class="sum-val ot-color">{{settings.overtimeStart}} 起</text>
+        <text class="sum-hint ot-color">此时起计入加班时长</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 2. 考勤参数调整区 -->
+  <view class="form-section card">
+    <view class="section-title">
+      <text class="section-title-text">考勤规则个性化设置</text>
+      <text class="section-sub-text">点击即可修改各参数</text>
+    </view>
+
+    <!-- 1. 上班基准 -->
+    <view class="setting-row">
+      <view class="row-left">
+        <text class="row-title">上班基准时间</text>
+        <text class="row-desc">默认 08:30，弹性中心点</text>
+      </view>
+      <picker mode="time" value="{{settings.baseStartTime}}" bindchange="onBaseStartTimeChange">
+        <view class="row-picker">
+          <text class="row-val">{{settings.baseStartTime}}</text>
+          <text class="row-arrow">›</text>
+        </view>
+      </picker>
+    </view>
+
+    <!-- 2. 上班弹性幅度 -->
+    <view class="setting-row">
+      <view class="row-left">
+        <text class="row-title">上班弹性幅度</text>
+        <text class="row-desc">当前: {{flexStartRangeText}}</text>
+      </view>
+      <picker range="{{flexOptionsLabels}}" value="{{startFlexIndex}}" bindchange="onStartFlexChange">
+        <view class="row-picker">
+          <text class="row-val">±{{settings.startFlexMinutes}} 分钟</text>
+          <text class="row-arrow">›</text>
+        </view>
+      </picker>
+    </view>
+
+    <!-- 3. 午休开始 -->
+    <view class="setting-row">
+      <view class="row-left">
+        <text class="row-title">午休开始时间</text>
+        <text class="row-desc">开始不计入工作时长</text>
+      </view>
+      <picker mode="time" value="{{settings.lunchStart}}" bindchange="onLunchStartChange">
+        <view class="row-picker">
+          <text class="row-val">{{settings.lunchStart}}</text>
+          <text class="row-arrow">›</text>
+        </view>
+      </picker>
+    </view>
+
+    <!-- 4. 午休结束 -->
+    <view class="setting-row">
+      <view class="row-left">
+        <text class="row-title">午休结束时间</text>
+        <text class="row-desc">结束午休，恢复计算工时</text>
+      </view>
+      <picker mode="time" value="{{settings.lunchEnd}}" bindchange="onLunchEndChange">
+        <view class="row-picker">
+          <text class="row-val">{{settings.lunchEnd}}</text>
+          <text class="row-arrow">›</text>
+        </view>
+      </picker>
+    </view>
+
+    <!-- 5. 下班基准 -->
+    <view class="setting-row">
+      <view class="row-left">
+        <text class="row-title">下班基准时间</text>
+        <text class="row-desc">默认 18:00，标准7.5h下班点</text>
+      </view>
+      <picker mode="time" value="{{settings.baseEndTime}}" bindchange="onBaseEndTimeChange">
+        <view class="row-picker">
+          <text class="row-val">{{settings.baseEndTime}}</text>
+          <text class="row-arrow">›</text>
+        </view>
+      </picker>
+    </view>
+
+    <!-- 6. 下班弹性幅度 -->
+    <view class="setting-row">
+      <view class="row-left">
+        <text class="row-title">下班弹性幅度</text>
+        <text class="row-desc">当前: {{flexEndRangeText}}</text>
+      </view>
+      <picker range="{{flexOptionsLabels}}" value="{{endFlexIndex}}" bindchange="onEndFlexChange">
+        <view class="row-picker">
+          <text class="row-val">±{{settings.endFlexMinutes}} 分钟</text>
+          <text class="row-arrow">›</text>
+        </view>
+      </picker>
+    </view>
+
+    <!-- 7. 加班起算时间 (重点功能) -->
+    <view class="setting-row row-highlight">
+      <view class="row-left">
+        <text class="row-title ot-color">晚间加班起算时间</text>
+        <text class="row-desc ot-sub">晚于该时间开始精确记录加班时长</text>
+      </view>
+      <picker mode="time" value="{{settings.overtimeStart}}" bindchange="onOvertimeStartChange">
+        <view class="row-picker">
+          <text class="row-val ot-val">{{settings.overtimeStart}}</text>
+          <text class="row-arrow ot-color">›</text>
+        </view>
+      </picker>
+    </view>
+  </view>
+
+  <!-- 3. 数据管理与演示 -->
+  <view class="data-section card">
+    <view class="section-title">
+      <text class="section-title-text">数据与辅助工具</text>
+    </view>
+
+    <view class="action-list">
+      <view class="action-item" hover-class="hover-effect" bindtap="loadDemoData">
+        <view class="item-left">
+          <text class="item-icon">✨</text>
+          <view class="item-text-group">
+            <text class="item-title">导入演示示例数据</text>
+            <text class="item-desc">生成包含正常出勤与加班的模拟数据，立即体验统计效果</text>
+          </view>
+        </view>
+        <text class="action-arrow">›</text>
+      </view>
+
+      <view class="action-item" hover-class="hover-effect" bindtap="exportBackupData">
+        <view class="item-left">
+          <text class="item-icon">📦</text>
+          <view class="item-text-group">
+            <text class="item-title">备份全部考勤数据</text>
+            <text class="item-desc">复制全部打卡与配置为 JSON 文本</text>
+          </view>
+        </view>
+        <text class="action-arrow">›</text>
+      </view>
+
+      <view class="action-item danger-item" hover-class="hover-effect" bindtap="clearAllRecords">
+        <view class="item-left">
+          <text class="item-icon">🗑</text>
+          <view class="item-text-group">
+            <text class="item-title text-danger">清空所有打卡记录</text>
+            <text class="item-desc">清除手机本地保存的历史打卡记录</text>
+          </view>
+        </view>
+        <text class="action-arrow text-danger">›</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 4. 关于卡片 -->
+  <view class="about-card card">
+    <view class="about-header">
+      <text class="about-app-name">弹性打卡助手</text>
+      <text class="about-version">v1.0.0</text>
+    </view>
+    <text class="about-desc">专门为弹性工作制与晚间加班设计：支持 08:30 前后弹性半小时打卡，智能推算下班时间，自动扣除 11:40~13:40 午休，精准记录 19:00 起的加班时长。</text>
+  </view>
+</scroll-view>
