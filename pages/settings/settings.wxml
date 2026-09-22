@@ -147,7 +147,40 @@
     </view>
   </view>
 
-  <!-- 3. 数据管理与演示 -->
+  <!-- 3. 邮箱备份与导出 (免费云端备份方案) -->
+  <view class="email-section card">
+    <view class="section-title-between">
+      <view>
+        <text class="section-title-text">邮箱备份与报表导出</text>
+        <text class="section-sub-text">100% 永久免费</text>
+      </view>
+      <text class="config-link" bindtap="openEmailModal">{{emailConfig.targetEmail ? '修改邮箱' : '配置邮箱'}}</text>
+    </view>
+
+    <!-- 邮箱状态条 -->
+    <view class="email-status-bar" bindtap="openEmailModal">
+      <view class="email-bar-left">
+        <text class="email-icon">📬</text>
+        <view class="email-info">
+          <text class="email-addr">{{emailConfig.targetEmail || '未绑定接收邮箱 (点击设置)'}}</text>
+          <text class="email-sub">{{emailConfig.targetEmail ? '已就绪，点击可随时修改' : '填入QQ/163/工作邮箱即可一键备份'}}</text>
+        </view>
+      </view>
+      <text class="email-arrow">›</text>
+    </view>
+
+    <!-- 邮件操作按钮 -->
+    <view class="email-btn-group">
+      <button class="email-act-btn primary" hover-class="hover-effect" bindtap="triggerSendEmail">
+        <text>✉ 发送当月考勤报表到邮箱</text>
+      </button>
+      <button class="email-act-btn" hover-class="hover-effect" bindtap="exportCsvReport">
+        <text>📊 导出 Excel (CSV) 文件</text>
+      </button>
+    </view>
+  </view>
+
+  <!-- 4. 数据管理与演示 -->
   <view class="data-section card">
     <view class="section-title">
       <text class="section-title-text">数据与辅助工具</text>
@@ -189,12 +222,41 @@
     </view>
   </view>
 
-  <!-- 4. 关于卡片 -->
+  <!-- 5. 关于卡片 -->
   <view class="about-card card">
     <view class="about-header">
       <text class="about-app-name">弹性打卡助手</text>
-      <text class="about-version">v1.1.0 (规则修正版)</text>
+      <text class="about-version">v1.2.0 (邮件云备份版)</text>
     </view>
-    <text class="about-desc">支持工作日弹性上下班（08:30±30m、18:00±30m），自动扣除11:40~13:40午休；工作日下班后休息1小时才开始计算加班时长；周六周日出勤全天计加班，且中午和晚上的休息时间都全额计入加班时长。</text>
+    <text class="about-desc">支持工作日弹性上下班（08:30±30m、18:00±30m），自动扣除11:40~13:40午休；工作日下班后休息1小时才开始计算加班时长；周六周日出勤全天计加班，且中午和晚上的休息时间都全额计入加班时长。支持全量数据直发个人邮箱，零费用持久保存。</text>
   </view>
 </scroll-view>
+
+<!-- 邮箱设置弹窗 -->
+<view class="modal-mask" wx:if="{{showEmailModal}}" bindtap="closeEmailModal">
+  <view class="modal-dialog" catchtap="true">
+    <view class="modal-header">
+      <text class="modal-title">设置备份邮箱</text>
+      <text class="modal-close" bindtap="closeEmailModal">✕</text>
+    </view>
+
+    <view class="modal-body">
+      <view class="form-item">
+        <text class="form-label">接收邮箱地址 *</text>
+        <input class="text-input" placeholder="例如：your_name@qq.com" value="{{emailConfig.targetEmail}}" bindinput="onTargetEmailInput" />
+        <text class="form-item-tip">用于接收月度考勤、加班报表与数据恢复备份。</text>
+      </view>
+
+      <view class="form-item">
+        <text class="form-label">Web3Forms Access Key (用于一键直发)</text>
+        <input class="text-input" placeholder="可填入免费 Key (可选)" value="{{emailConfig.accessKey}}" bindinput="onAccessKeyInput" />
+        <text class="form-item-tip">💡 提示：访问 web3forms.com 填写邮箱即可免费秒获 Key；若不填也可一键复制完整邮件文本或导出Excel发信！</text>
+      </view>
+    </view>
+
+    <view class="modal-footer">
+      <button class="btn-cancel" bindtap="closeEmailModal">取消</button>
+      <button class="btn-confirm" bindtap="saveEmailConfigOnly">保存邮箱</button>
+    </view>
+  </view>
+</view>

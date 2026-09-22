@@ -154,14 +154,30 @@
   color: #94a3b8;
 }
 
+.export-actions {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  flex-wrap: wrap;
+}
+
 .export-link {
   display: flex;
   align-items: center;
   gap: 6rpx;
   background: #eff6ff;
   border: 1rpx solid #bfdbfe;
-  padding: 8rpx 18rpx;
+  padding: 8rpx 16rpx;
   border-radius: 20rpx;
+}
+
+.export-link.link-email {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+}
+
+.export-link.link-email .export-text {
+  color: #059669;
 }
 
 .export-icon {

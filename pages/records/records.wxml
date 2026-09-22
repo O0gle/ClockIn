@@ -55,9 +55,19 @@
         <text class="tip-icon">ℹ</text>
         <text class="tip-text">工作日下班休息1h起算 / 周末休息全计入加班</text>
       </view>
-      <view class="export-link" hover-class="hover-effect" bindtap="exportMonthData">
-        <text class="export-icon">📋</text>
-        <text class="export-text">复制本月明细</text>
+      <view class="export-actions">
+        <view class="export-link link-email" hover-class="hover-effect" bindtap="sendMonthEmail">
+          <text class="export-icon">✉</text>
+          <text class="export-text">发邮箱</text>
+        </view>
+        <view class="export-link" hover-class="hover-effect" bindtap="exportCsvReport">
+          <text class="export-icon">📊</text>
+          <text class="export-text">Excel</text>
+        </view>
+        <view class="export-link" hover-class="hover-effect" bindtap="exportMonthData">
+          <text class="export-icon">📋</text>
+          <text class="export-text">复制</text>
+        </view>
       </view>
     </view>
   </view>

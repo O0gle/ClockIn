@@ -1,5 +1,6 @@
 // pages/records/records.js
 const attendance = require('../../utils/attendance.js');
+const emailUtil = require('../../utils/email.js');
 
 Page({
   data: {
@@ -346,6 +347,105 @@ Page({
           showCancel: false,
           confirmColor: '#1677ff'
         });
+      }
+    });
+  },
+
+  /**
+   * 发送本月考勤报表到邮箱
+   */
+  sendMonthEmail() {
+    const { statistics, currentYear, currentMonth } = this.data;
+    if (!statistics || !statistics.records || statistics.records.length === 0) {
+      wx.showToast({ title: '本月暂无打卡记录', icon: 'none' });
+      return;
+    }
+
+    const emailConfig = emailUtil.getEmailConfig();
+    const settings = attendance.getSettings();
+    const allRecords = attendance.getAllRecords();
+
+    if (!emailConfig.targetEmail) {
+      wx.showModal({
+        title: '未设置备份邮箱',
+        content: '尚未配置接收邮箱，是否前往「设置」页面填写邮箱？\n（您也可以先复制完整文本或导出Excel）',
+        confirmText: '去设置',
+        cancelText: '复制文本',
+        confirmColor: '#1677ff',
+        success: (res) => {
+          if (res.confirm) {
+            wx.switchTab({ url: '/pages/settings/settings' });
+          } else {
+            const body = emailUtil.generateEmailText(currentYear, currentMonth, statistics, settings, allRecords);
+            wx.setClipboardData({ data: body });
+          }
+        }
+      });
+      return;
+    }
+
+    const body = emailUtil.generateEmailText(currentYear, currentMonth, statistics, settings, allRecords);
+    const subject = `【弹性考勤助手】${currentYear}年${currentMonth}月 考勤与加班明细报表`;
+
+    if (!emailConfig.accessKey) {
+      wx.showActionSheet({
+        itemList: ['复制完整邮件文本 (可直接粘贴发送)', '导出 Excel (CSV) 报表并分享', '前往设置配置免费直发 Key'],
+        success: (res) => {
+          if (res.tapIndex === 0) {
+            wx.setClipboardData({ data: body });
+          } else if (res.tapIndex === 1) {
+            this.exportCsvReport();
+          } else if (res.tapIndex === 2) {
+            wx.switchTab({ url: '/pages/settings/settings' });
+          }
+        }
+      });
+      return;
+    }
+
+    emailUtil.sendEmailViaApi({
+      targetEmail: emailConfig.targetEmail,
+      accessKey: emailConfig.accessKey,
+      subject,
+      message: body
+    }, (err) => {
+      if (err) {
+        wx.showModal({
+          title: '发送遇到问题',
+          content: err.message,
+          confirmText: '复制文本',
+          cancelText: '知道了',
+          confirmColor: '#1677ff',
+          success: (mRes) => {
+            if (mRes.confirm) wx.setClipboardData({ data: body });
+          }
+        });
+      } else {
+        wx.showModal({
+          title: '邮件已发送 📬',
+          content: `考勤报表已成功发送至：\n${emailConfig.targetEmail}\n请稍后查收！`,
+          showCancel: false,
+          confirmColor: '#1677ff'
+        });
+      }
+    });
+  },
+
+  /**
+   * 生成并导出 CSV / Excel 文件
+   */
+  exportCsvReport() {
+    const { statistics, currentYear, currentMonth } = this.data;
+    if (!statistics || !statistics.records || statistics.records.length === 0) {
+      wx.showToast({ title: '本月暂无打卡记录', icon: 'none' });
+      return;
+    }
+
+    wx.showLoading({ title: '正在生成表格...' });
+    emailUtil.exportCsvFile(currentYear, currentMonth, statistics, (err) => {
+      wx.hideLoading();
+      if (err) {
+        wx.showToast({ title: '文件生成失败', icon: 'none' });
       }
     });
   }
