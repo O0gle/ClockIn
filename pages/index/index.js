@@ -7,6 +7,7 @@ Page({
     currentDateText: '',
     weekDayText: '',
     currentTimeText: '',
+    isWeekend: false,
 
     // 今日记录
     todayDate: '',
@@ -74,9 +75,11 @@ Page({
     const today = attendance.getTodayDateStr();
     const settings = attendance.getSettings();
     const record = attendance.getRecordByDate(today, settings);
+    const isWeekend = attendance.isWeekendDate(today);
 
     this.setData({
       todayDate: today,
+      isWeekend,
       settings,
       record
     });
@@ -85,7 +88,7 @@ Page({
   },
 
   /**
-   * 启动实时时钟 (每秒刷新一次，精确显示当前时间和倒计时)
+   * 启动实时时钟
    */
   startClock() {
     this.stopClock();
@@ -119,13 +122,16 @@ Page({
     const month = now.getMonth() + 1;
     const date = now.getDate();
     const weekDays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
-    const weekDayText = weekDays[now.getDay()];
+    const dayOfWeek = now.getDay();
+    const weekDayText = weekDays[dayOfWeek];
     const currentDateText = `${year}年${month}月${date}日`;
+    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
 
     this.setData({
       currentTimeText,
       currentDateText,
-      weekDayText
+      weekDayText,
+      isWeekend
     });
 
     // 每一分钟更新一次在岗倒计时或加班实时显示
@@ -138,7 +144,7 @@ Page({
    * 根据当前打卡情况与当前时间，计算工作状态
    */
   updateWorkStatus() {
-    const { record, settings } = this.data;
+    const { record, settings, isWeekend } = this.data;
     if (!record || !settings) return;
 
     const now = new Date();
@@ -146,7 +152,7 @@ Page({
     const nowTimeStr = attendance.getCurrentTimeStr(now);
 
     let workState = 'unpunched';
-    let workStateText = '今日尚未打卡';
+    let workStateText = isWeekend ? '周末尚未打卡' : '今日尚未打卡';
     let elapsedWorkText = '';
     let remainingWorkText = '';
     let overtimeActiveText = '';
@@ -154,40 +160,57 @@ Page({
     if (!record.signInTime && !record.signOutTime) {
       // 未打卡
       workState = 'unpunched';
-      workStateText = '今日尚未打卡';
+      workStateText = isWeekend ? '周末尚未打卡 (全天计加班)' : '今日尚未打卡';
     } else if (record.signInTime && !record.signOutTime) {
       // 工作中
-      const expectedOutMins = record.expectedOutMins;
-      const currentWorkMins = attendance.calculateWorkDuration(record.signInTime, nowTimeStr, settings);
-      elapsedWorkText = attendance.formatDuration(currentWorkMins);
+      const inMins = attendance.timeStrToMinutes(record.signInTime);
 
-      const overtimeStartMins = attendance.timeStrToMinutes(settings.overtimeStart); // 19:00 (1140)
-
-      if (nowMins >= overtimeStartMins) {
-        // 当前已经在加班时间 (>= 19:00)
+      if (isWeekend) {
+        // 周末：把中午、晚上的休息时间都计入加班时长
         workState = 'overtime';
-        const currentOvertimeMins = nowMins - overtimeStartMins;
-        overtimeActiveText = attendance.formatDuration(currentOvertimeMins);
-        workStateText = `加班进行中 (从${settings.overtimeStart}已加 ${overtimeActiveText})`;
-      } else if (expectedOutMins && nowMins >= expectedOutMins) {
-        // 已经满7.5小时工时，尚未到19:00
-        workState = 'working';
-        workStateText = '已满标准工时，可随时打卡下班';
-        remainingWorkText = '已达标';
+        const weekendOtMins = Math.max(0, nowMins - inMins);
+        overtimeActiveText = attendance.formatDuration(weekendOtMins);
+        elapsedWorkText = overtimeActiveText;
+        workStateText = `周末加班进行中 (已加 ${overtimeActiveText}，休息全计)`;
+        remainingWorkText = '全天计加班';
       } else {
-        // 正常工作中，计算倒计时
-        workState = 'working';
-        workStateText = '正常工作中';
-        if (expectedOutMins) {
-          const diff = expectedOutMins - nowMins;
-          remainingWorkText = diff > 0 ? `距下班还需 ${attendance.formatDuration(diff)}` : '已达标';
+        // 工作日：满7.5h后休息1小时起算加班
+        const expectedOutMins = record.expectedOutMins;
+        const currentWorkMins = attendance.calculateWorkDuration(record.signInTime, nowTimeStr, settings, record.date);
+        elapsedWorkText = attendance.formatDuration(currentWorkMins);
+
+        const restMins = settings.weekdayRestMinutes || 60;
+        const overtimeStartMins = (expectedOutMins || attendance.timeStrToMinutes(settings.baseEndTime)) + restMins;
+
+        if (nowMins >= overtimeStartMins) {
+          // 当前已经在加班时间 (满工时 + 休息1小时 之后)
+          workState = 'overtime';
+          const currentOvertimeMins = nowMins - overtimeStartMins;
+          overtimeActiveText = attendance.formatDuration(currentOvertimeMins);
+          const otStartStr = attendance.minutesToTimeStr(overtimeStartMins);
+          workStateText = `工作日加班进行中 (休息1h后从${otStartStr}已加 ${overtimeActiveText})`;
+          remainingWorkText = '已进入加班';
+        } else if (expectedOutMins && nowMins >= expectedOutMins) {
+          // 已经满7.5小时工时，处于下班休息1小时内
+          workState = 'working';
+          const restLeft = overtimeStartMins - nowMins;
+          workStateText = `已满标准工时 · 休息缓冲中 (离加班还剩 ${restLeft}分钟)`;
+          remainingWorkText = '已达标(休息中)';
+        } else {
+          // 正常工作中，计算倒计时
+          workState = 'working';
+          workStateText = '正常工作中';
+          if (expectedOutMins) {
+            const diff = expectedOutMins - nowMins;
+            remainingWorkText = diff > 0 ? `距下班还需 ${attendance.formatDuration(diff)}` : '已达标';
+          }
         }
       }
     } else {
       // 已经完成下班打卡
       if (record.overtimeMinutes > 0) {
         workState = 'off_work';
-        workStateText = `已下班 (加班 ${record.overtimeText})`;
+        workStateText = isWeekend ? `周末加班完成 (${record.overtimeText})` : `已下班 (工作日加班 ${record.overtimeText})`;
       } else {
         workState = 'off_work';
         workStateText = `已下班 (工时 ${record.workText})`;
@@ -210,12 +233,10 @@ Page({
     const now = new Date();
     const timeStr = attendance.getCurrentTimeStr(now);
     const today = attendance.getTodayDateStr(now);
-    const { record, settings } = this.data;
+    const { record } = this.data;
 
-    // 震动反馈
     wx.vibrateShort({ type: 'medium' });
 
-    // 检查是否重复打上班卡
     if (record && record.signInTime) {
       wx.showModal({
         title: '更新上班打卡时间？',
@@ -234,7 +255,7 @@ Page({
   },
 
   doSavePunchIn(today, timeStr) {
-    const { record, settings } = this.data;
+    const { record, settings, isWeekend } = this.data;
     const newRecord = Object.assign({}, record, {
       date: today,
       signInTime: timeStr,
@@ -248,13 +269,17 @@ Page({
     });
     this.updateWorkStatus();
 
-    let tip = `上班打卡成功：${timeStr}`;
-    if (evaluated.expectedSignOutTime) {
-      tip += `\n预计下班：${evaluated.expectedSignOutTime}`;
+    let tip = `打卡成功：${timeStr}`;
+    if (isWeekend) {
+      tip += `\n🌟 今日是周末：全天出勤计加班，中午与晚上休息均计入加班时长！`;
+    } else {
+      if (evaluated.expectedSignOutTime) {
+        tip += `\n预计下班：${evaluated.expectedSignOutTime}\n休息1小时后 (即${evaluated.overtimeStartTime}) 开始计入加班`;
+      }
     }
 
     wx.showModal({
-      title: '打卡成功 🎉',
+      title: isWeekend ? '周末加班打卡成功 👏' : '上班打卡成功 🎉',
       content: tip,
       showCancel: false,
       confirmText: '我知道了',
@@ -269,15 +294,14 @@ Page({
     const now = new Date();
     const timeStr = attendance.getCurrentTimeStr(now);
     const today = attendance.getTodayDateStr(now);
-    const { record, settings } = this.data;
+    const { record, isWeekend } = this.data;
 
-    // 震动反馈
     wx.vibrateShort({ type: 'medium' });
 
     if (!record || !record.signInTime) {
       wx.showModal({
         title: '未记录上班打卡',
-        content: '您今天还未打上班卡，是否直接记录下班打卡？建议先补充上班打卡时间。',
+        content: isWeekend ? '您尚未打开始卡，建议先补充上班时间。' : '您今天还未打上班卡，是否直接记录下班？建议先补充上班打卡。',
         cancelText: '去补卡',
         confirmText: '直接下班',
         confirmColor: '#1677ff',
@@ -292,28 +316,30 @@ Page({
       return;
     }
 
-    // 检查是否早退
-    const nowMins = attendance.timeStrToMinutes(timeStr);
-    const expectedOutMins = record.expectedOutMins;
+    // 工作日检查是否早退
+    if (!isWeekend) {
+      const nowMins = attendance.timeStrToMinutes(timeStr);
+      const expectedOutMins = record.expectedOutMins;
 
-    if (expectedOutMins && nowMins < expectedOutMins) {
-      const diff = expectedOutMins - nowMins;
-      wx.showModal({
-        title: '提示：未满标准工时',
-        content: `根据您的上班打卡(${record.signInTime})与弹性7.5h制，预计需满 ${record.expectedSignOutTime} 下班。\n此时打卡将早退 ${diff} 分钟，确定下班吗？`,
-        confirmText: '确认打卡',
-        cancelText: '继续上班',
-        confirmColor: '#d97706',
-        success: (res) => {
-          if (res.confirm) {
-            this.doSavePunchOut(today, timeStr);
+      if (expectedOutMins && nowMins < expectedOutMins) {
+        const diff = expectedOutMins - nowMins;
+        wx.showModal({
+          title: '提示：未满标准工时',
+          content: `根据您的上班打卡(${record.signInTime})与弹性7.5h制，预计需满 ${record.expectedSignOutTime} 下班。\n此时打卡将早退 ${diff} 分钟，确定下班吗？`,
+          confirmText: '确认打卡',
+          cancelText: '继续上班',
+          confirmColor: '#d97706',
+          success: (res) => {
+            if (res.confirm) {
+              this.doSavePunchOut(today, timeStr);
+            }
           }
-        }
-      });
-      return;
+        });
+        return;
+      }
     }
 
-    // 如果已经打过下班卡，询问是否更新 (例如加班到更晚)
+    // 如果已经打过下班卡，询问是否更新
     if (record.signOutTime) {
       wx.showModal({
         title: '更新下班打卡时间？',
@@ -332,7 +358,7 @@ Page({
   },
 
   doSavePunchOut(today, timeStr) {
-    const { record, settings } = this.data;
+    const { record, settings, isWeekend } = this.data;
     const newRecord = Object.assign({}, record, {
       date: today,
       signOutTime: timeStr,
@@ -346,9 +372,16 @@ Page({
     });
     this.updateWorkStatus();
 
-    let content = `下班打卡成功：${timeStr}\n今日工作工时：${evaluated.workText}`;
-    if (evaluated.overtimeMinutes > 0) {
-      content += `\n🌟 记录加班：${evaluated.overtimeText} (从${settings.overtimeStart}起算)`;
+    let content = `下班打卡成功：${timeStr}`;
+    if (isWeekend) {
+      content += `\n🌟 周末累计加班：${evaluated.overtimeText} (中午及晚间休息全额计入)`;
+    } else {
+      content += `\n今日工作工时：${evaluated.workText}`;
+      if (evaluated.overtimeMinutes > 0) {
+        content += `\n🌟 工作日加班：${evaluated.overtimeText} (下班后休息1小时后起算)`;
+      } else {
+        content += `\n(下班后休息1小时内，未产生加班时长)`;
+      }
     }
 
     wx.showModal({
@@ -380,21 +413,15 @@ Page({
   },
 
   onEditSignInChange(e) {
-    this.setData({
-      editSignInTime: e.detail.value
-    });
+    this.setData({ editSignInTime: e.detail.value });
   },
 
   onEditSignOutChange(e) {
-    this.setData({
-      editSignOutTime: e.detail.value
-    });
+    this.setData({ editSignOutTime: e.detail.value });
   },
 
   onEditRemarkChange(e) {
-    this.setData({
-      editRemark: e.detail.value
-    });
+    this.setData({ editRemark: e.detail.value });
   },
 
   saveEditRecord() {

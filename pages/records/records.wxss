@@ -273,6 +273,10 @@
   line-height: 1.2;
 }
 
+.ot-badge.ot-badge-weekend {
+  background: #7c3aed;
+}
+
 /* 选中的日期详情卡片 */
 .selected-detail-card {
   padding: 28rpx 32rpx;

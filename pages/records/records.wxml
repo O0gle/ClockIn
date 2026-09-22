@@ -41,7 +41,7 @@
       <view class="stat-item stat-overtime">
         <text class="stat-num ot-color">{{statistics.totalOvertimeHours || '0.0'}}</text>
         <text class="stat-unit ot-color">小时</text>
-        <text class="stat-title ot-color">累计加班 (19:00起)</text>
+        <text class="stat-title ot-color">累计加班时长</text>
       </view>
       <view class="stat-item">
         <text class="stat-num {{statistics.lateCount > 0 ? 'text-warning' : ''}}">{{statistics.lateCount || 0}}</text>
@@ -53,7 +53,7 @@
     <view class="stats-footer">
       <view class="footer-tip">
         <text class="tip-icon">ℹ</text>
-        <text class="tip-text">每日标准工时7.5h，午休11:40~13:40已扣除</text>
+        <text class="tip-text">工作日下班休息1h起算 / 周末休息全计入加班</text>
       </view>
       <view class="export-link" hover-class="hover-effect" bindtap="exportMonthData">
         <text class="export-icon">📋</text>
@@ -84,7 +84,10 @@
 
           <!-- 考勤状态小圆点与加班标签 -->
           <view class="day-tag-area" wx:if="{{item.hasRecord}}">
-            <view wx:if="{{item.statusType === 'overtime'}}" class="ot-badge">
+            <view wx:if="{{item.statusType === 'weekend_ot'}}" class="ot-badge ot-badge-weekend">
+              <text>{{item.overtimeText}}</text>
+            </view>
+            <view wx:elif="{{item.statusType === 'overtime'}}" class="ot-badge">
               <text>{{item.overtimeText}}</text>
             </view>
             <view wx:elif="{{item.statusType === 'normal'}}" class="dot dot-success"></view>
@@ -133,7 +136,7 @@
       <view class="detail-item detail-ot">
         <text class="detail-label">加班时长</text>
         <text class="detail-val ot-color">{{selectedDayRecord.overtimeText || '0分钟'}}</text>
-        <text class="detail-sub ot-color">19:00起计</text>
+        <text class="detail-sub ot-color">{{selectedDayRecord.isWeekend ? '全额计入' : '休息1h后起算'}}</text>
       </view>
     </view>
 
@@ -188,7 +191,7 @@
               <text class="col-val">{{item.workText}}</text>
             </view>
             <view class="data-col ot-col">
-              <text class="col-label">加班(19:00起)</text>
+              <text class="col-label">{{item.isWeekend ? '加班(全额计)' : '加班(休息1h起)'}}</text>
               <text class="col-val ot-val">{{item.overtimeText}}</text>
             </view>
           </view>

@@ -13,19 +13,19 @@
         <text class="sum-hint">基准 {{settings.baseStartTime}} (±{{settings.startFlexMinutes}}m)</text>
       </view>
       <view class="sum-item">
-        <text class="sum-label">午休不计工时</text>
+        <text class="sum-label">午休时间 (扣除)</text>
         <text class="sum-val">{{settings.lunchStart}} ~ {{settings.lunchEnd}}</text>
-        <text class="sum-hint">扣除 {{lunchDurationText}}</text>
+        <text class="sum-hint">工作日扣除 {{lunchDurationText}}</text>
       </view>
       <view class="sum-item">
-        <text class="sum-label">弹性下班区间</text>
-        <text class="sum-val">{{flexEndRangeText}}</text>
-        <text class="sum-hint">满 {{standardWorkText}}</text>
+        <text class="sum-label">工作日加班规则</text>
+        <text class="sum-val ot-color">{{weekdayOvertimeRuleText}}</text>
+        <text class="sum-hint ot-color">休息1h内不计入加班</text>
       </view>
       <view class="sum-item sum-overtime">
-        <text class="sum-label ot-color">加班起算时间</text>
-        <text class="sum-val ot-color">{{settings.overtimeStart}} 起</text>
-        <text class="sum-hint ot-color">此时起计入加班时长</text>
+        <text class="sum-label ot-color">周六日加班规则</text>
+        <text class="sum-val ot-color">全额计加班</text>
+        <text class="sum-hint ot-color">中午和晚上休息均计入</text>
       </view>
     </view>
   </view>
@@ -69,7 +69,7 @@
     <view class="setting-row">
       <view class="row-left">
         <text class="row-title">午休开始时间</text>
-        <text class="row-desc">开始不计入工作时长</text>
+        <text class="row-desc">工作日开始不计入工作时长</text>
       </view>
       <picker mode="time" value="{{settings.lunchStart}}" bindchange="onLunchStartChange">
         <view class="row-picker">
@@ -121,18 +121,29 @@
       </picker>
     </view>
 
-    <!-- 7. 加班起算时间 (重点功能) -->
+    <!-- 7. 工作日下班后休息时长 (重点规则修正) -->
     <view class="setting-row row-highlight">
       <view class="row-left">
-        <text class="row-title ot-color">晚间加班起算时间</text>
-        <text class="row-desc ot-sub">晚于该时间开始精确记录加班时长</text>
+        <text class="row-title ot-color">工作日下班休息时长</text>
+        <text class="row-desc ot-sub">工作日满工时后休息该时长才起算加班</text>
       </view>
-      <picker mode="time" value="{{settings.overtimeStart}}" bindchange="onOvertimeStartChange">
+      <picker range="{{restOptionsLabels}}" value="{{restIndex}}" bindchange="onWeekdayRestChange">
         <view class="row-picker">
-          <text class="row-val ot-val">{{settings.overtimeStart}}</text>
+          <text class="row-val ot-val">{{settings.weekdayRestMinutes || 60}} 分钟</text>
           <text class="row-arrow ot-color">›</text>
         </view>
       </picker>
+    </view>
+
+    <!-- 8. 周末加班规则说明 -->
+    <view class="setting-row row-weekend-rule">
+      <view class="row-left">
+        <text class="row-title text-purple">周六周日加班规则</text>
+        <text class="row-desc">全天出勤计加班，把中午与晚上休息全额计入</text>
+      </view>
+      <view class="weekend-tag">
+        <text>休息全计入</text>
+      </view>
     </view>
   </view>
 
@@ -148,7 +159,7 @@
           <text class="item-icon">✨</text>
           <view class="item-text-group">
             <text class="item-title">导入演示示例数据</text>
-            <text class="item-desc">生成包含正常出勤与加班的模拟数据，立即体验统计效果</text>
+            <text class="item-desc">生成工作日休息1h起算加班、周六日全额计加班的代表性样本</text>
           </view>
         </view>
         <text class="action-arrow">›</text>
@@ -182,8 +193,8 @@
   <view class="about-card card">
     <view class="about-header">
       <text class="about-app-name">弹性打卡助手</text>
-      <text class="about-version">v1.0.0</text>
+      <text class="about-version">v1.1.0 (规则修正版)</text>
     </view>
-    <text class="about-desc">专门为弹性工作制与晚间加班设计：支持 08:30 前后弹性半小时打卡，智能推算下班时间，自动扣除 11:40~13:40 午休，精准记录 19:00 起的加班时长。</text>
+    <text class="about-desc">支持工作日弹性上下班（08:30±30m、18:00±30m），自动扣除11:40~13:40午休；工作日下班后休息1小时才开始计算加班时长；周六周日出勤全天计加班，且中午和晚上的休息时间都全额计入加班时长。</text>
   </view>
 </scroll-view>

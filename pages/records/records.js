@@ -119,7 +119,7 @@ Page({
         isToday,
         hasRecord,
         record: rec,
-        statusType: rec ? (rec.overtimeMinutes > 0 ? 'overtime' : (rec.signInStatus === 'late' || rec.signOutStatus === 'early_leave' ? 'abnormal' : 'normal')) : 'none',
+        statusType: rec ? (rec.overtimeMinutes > 0 ? (rec.isWeekend ? 'weekend_ot' : 'overtime') : (rec.signInStatus === 'late' || rec.signOutStatus === 'early_leave' ? 'abnormal' : 'normal')) : 'none',
         overtimeText: rec && rec.overtimeMinutes > 0 ? `+${attendance.formatHoursDecimal(rec.overtimeMinutes)}h` : ''
       });
     }
@@ -310,18 +310,23 @@ Page({
       return;
     }
 
-    let text = `【${currentYear}年${currentMonth}月 弹性考勤记录】\n`;
+    let text = `【${currentYear}年${currentMonth}月 弹性考勤与加班明细】\n`;
     text += `出勤天数：${statistics.totalDays} 天\n`;
     text += `累计工时：${statistics.totalWorkText} (${statistics.totalWorkHours} 小时)\n`;
-    text += `累计加班：${statistics.totalOvertimeText} (${statistics.totalOvertimeHours} 小时，从19:00起算)\n`;
+    text += `累计加班：${statistics.totalOvertimeText} (${statistics.totalOvertimeHours} 小时)\n`;
+    text += `规则说明：工作日下班休息1h起算加班，周六日全额计加班(中午/晚间休息均计入)\n`;
     text += `迟到次数：${statistics.lateCount} 次 | 早退次数：${statistics.earlyLeaveCount} 次\n`;
     text += `------------------------------------\n`;
 
     statistics.records.forEach(r => {
-      let line = `${r.date}: 上班 ${r.signInTime || '--:--'} | 下班 ${r.signOutTime || '--:--'} | 预计 ${r.expectedSignOutTime || '--:--'}`;
-      line += ` | 工时: ${r.workText}`;
-      if (r.overtimeMinutes > 0) {
-        line += ` | 🌟加班: ${r.overtimeText}`;
+      let line = '';
+      if (r.isWeekend) {
+        line = `${r.date} (周末): 上班 ${r.signInTime || '--:--'} | 下班 ${r.signOutTime || '--:--'} | 🌟全额加班: ${r.overtimeText}`;
+      } else {
+        line = `${r.date}: 上班 ${r.signInTime || '--:--'} | 下班 ${r.signOutTime || '--:--'} | 预计 ${r.expectedSignOutTime || '--:--'} | 工时: ${r.workText}`;
+        if (r.overtimeMinutes > 0) {
+          line += ` | 🌟加班: ${r.overtimeText} (休息1h后起算)`;
+        }
       }
       if (r.summaryStatusText) {
         line += ` [${r.summaryStatusText}]`;

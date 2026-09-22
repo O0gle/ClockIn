@@ -44,11 +44,26 @@
   border-radius: 8rpx;
 }
 
+.weekday-text.weekend-text {
+  color: #ea580c;
+  background: #fff7ed;
+  font-weight: 600;
+}
+
 .rule-tag {
   background: #eff6ff;
   border: 1rpx solid #bfdbfe;
   padding: 6rpx 16rpx;
   border-radius: 20rpx;
+}
+
+.rule-tag.rule-tag-weekend {
+  background: #fff7ed;
+  border-color: #fed7aa;
+}
+
+.rule-tag.rule-tag-weekend .rule-tag-text {
+  color: #ea580c;
 }
 
 .rule-tag-text {
@@ -165,6 +180,12 @@
 .punch-in {
   background: linear-gradient(135deg, #1677ff 0%, #0ea5e9 100%);
   box-shadow: 0 16rpx 40rpx rgba(22, 119, 255, 0.35);
+}
+
+/* 周末加班打卡: 橙红渐变 */
+.punch-weekend {
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+  box-shadow: 0 16rpx 40rpx rgba(234, 88, 12, 0.35);
 }
 
 /* 下班打卡: 翠绿/青绿渐变 */
@@ -496,6 +517,14 @@
   border-radius: 50%;
   margin-top: 14rpx;
   flex-shrink: 0;
+}
+
+.rule-bullet.bullet-accent {
+  background: #f97316;
+}
+
+.rule-bullet.bullet-weekend {
+  background: #7c3aed;
 }
 
 .rule-content {

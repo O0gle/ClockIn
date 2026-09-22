@@ -5,10 +5,10 @@
     <view class="date-row">
       <view class="date-badge">
         <text class="date-text">{{currentDateText}}</text>
-        <text class="weekday-text">{{weekDayText}}</text>
+        <text class="weekday-text {{isWeekend ? 'weekend-text' : ''}}">{{weekDayText}}</text>
       </view>
-      <view class="rule-tag">
-        <text class="rule-tag-text">弹性制 · 满7.5h</text>
+      <view class="rule-tag {{isWeekend ? 'rule-tag-weekend' : ''}}">
+        <text class="rule-tag-text">{{isWeekend ? '周末 · 休息全计加班' : '工作日 · 弹性满7.5h'}}</text>
       </view>
     </view>
     <view class="time-display">
@@ -24,12 +24,12 @@
   <view class="action-card card">
     <view class="button-wrapper">
       <!-- 状态A: 尚未打上班卡 -->
-      <view wx:if="{{!record.signInTime}}" class="punch-circle punch-in" hover-class="punch-hover" bindtap="handlePunchIn">
+      <view wx:if="{{!record.signInTime}}" class="punch-circle {{isWeekend ? 'punch-weekend' : 'punch-in'}}" hover-class="punch-hover" bindtap="handlePunchIn">
         <view class="punch-ripple"></view>
         <view class="punch-inner">
-          <text class="punch-title">上班打卡</text>
+          <text class="punch-title">{{isWeekend ? '周末加班打卡' : '上班打卡'}}</text>
           <text class="punch-time-hint">{{currentTimeText}}</text>
-          <text class="punch-rule-sub">弹性区间 08:00 ~ 09:00</text>
+          <text class="punch-rule-sub">{{isWeekend ? '休息时间全额计入加班' : '弹性区间 08:00 ~ 09:00'}}</text>
         </view>
       </view>
 
@@ -39,7 +39,7 @@
         <view class="punch-inner">
           <text class="punch-title">下班打卡</text>
           <text class="punch-time-hint">{{currentTimeText}}</text>
-          <text class="punch-rule-sub">预计满工时: {{record.expectedSignOutTime || '18:00'}}</text>
+          <text class="punch-rule-sub">{{isWeekend ? '结束加班并结算时长' : '预计满工时: ' + (record.expectedSignOutTime || '18:00')}}</text>
         </view>
       </view>
 
@@ -56,12 +56,12 @@
     <!-- 实时动态提示 -->
     <view class="status-sub-bar" wx:if="{{record.signInTime && !record.signOutTime}}">
       <view class="sub-bar-item">
-        <text class="sub-label">已在岗工作</text>
+        <text class="sub-label">{{isWeekend ? '今日已加班' : '已在岗工作'}}</text>
         <text class="sub-value">{{elapsedWorkText || '计算中...'}}</text>
       </view>
       <view class="sub-bar-divider"></view>
       <view class="sub-bar-item">
-        <text class="sub-label">下班倒计时</text>
+        <text class="sub-label">{{isWeekend ? '加班结算规则' : '下班倒计时'}}</text>
         <text class="sub-value {{remainingWorkText === '已达标' ? 'text-success' : 'text-primary'}}">{{remainingWorkText || '--'}}</text>
       </view>
     </view>
@@ -88,17 +88,17 @@
           <text class="badge badge-{{record.signInTagType || 'default'}}">{{record.signInStatusText || '未打卡'}}</text>
         </view>
         <text class="metric-value {{record.signInTime ? 'val-active' : ''}}">{{record.signInTime || '--:--'}}</text>
-        <text class="metric-hint">基准 08:30 (±30m)</text>
+        <text class="metric-hint">{{isWeekend ? '全天出勤计加班' : '基准 08:30 (±30m)'}}</text>
       </view>
 
       <!-- 2. 预计下班 -->
       <view class="metric-item">
         <view class="metric-top">
           <text class="metric-label">预计下班</text>
-          <text class="badge badge-info">满7.5h工时</text>
+          <text class="badge badge-info">{{isWeekend ? '自由下班' : '满7.5h工时'}}</text>
         </view>
         <text class="metric-value {{record.expectedSignOutTime ? 'val-active' : ''}}">{{record.expectedSignOutTime || '--:--'}}</text>
-        <text class="metric-hint">弹性满工时下班点</text>
+        <text class="metric-hint">{{isWeekend ? '出勤全程计入加班' : '满工时下班点'}}</text>
       </view>
 
       <!-- 3. 实际下班 -->
@@ -108,41 +108,41 @@
           <text class="badge badge-{{record.signOutTagType || 'default'}}">{{record.signOutStatusText || '未打卡'}}</text>
         </view>
         <text class="metric-value {{record.signOutTime ? 'val-active' : ''}}">{{record.signOutTime || '--:--'}}</text>
-        <text class="metric-hint">基准 18:00 (±30m)</text>
+        <text class="metric-hint">{{isWeekend ? '结算全天加班' : '基准 18:00 (±30m)'}}</text>
       </view>
 
-      <!-- 4. 加班时长 (从19:00起算，高亮突出) -->
+      <!-- 4. 加班时长 (高亮突出) -->
       <view class="metric-item highlight-item">
         <view class="metric-top">
           <text class="metric-label">加班时长</text>
-          <text class="badge badge-accent">19:00起计</text>
+          <text class="badge badge-accent">{{isWeekend ? '休息全计入' : '下班休息1h起'}}</text>
         </view>
         <text class="metric-value ot-value">{{record.overtimeText || '0分钟'}}</text>
-        <text class="metric-hint">19:00前不计加班</text>
+        <text class="metric-hint">{{isWeekend ? '中午及晚上休息均计入' : (record.overtimeStartTime ? record.overtimeStartTime + '起算加班' : '休息1h后起算')}}</text>
       </view>
     </view>
 
     <!-- 工作总时长展示行 -->
     <view class="work-duration-bar" wx:if="{{record.signInTime && record.signOutTime}}">
       <view class="work-summary-left">
-        <text class="summary-label">实际出勤工时：</text>
-        <text class="summary-val">{{record.workText}}</text>
-        <text class="summary-sub">(已扣午休2小时)</text>
+        <text class="summary-label">{{isWeekend ? '周末累计加班：' : '实际出勤工时：'}}</text>
+        <text class="summary-val">{{isWeekend ? record.overtimeText : record.workText}}</text>
+        <text class="summary-sub">{{isWeekend ? '(中午/晚间休息均已计入)' : '(已扣午休2小时)'}}</text>
       </view>
       <view class="work-status-badge">
         <text class="badge badge-{{record.overtimeMinutes > 0 ? 'accent' : 'success'}}">
-          {{record.overtimeMinutes > 0 ? '含加班' : '工时正常'}}
+          {{isWeekend ? '周末全额加班' : (record.overtimeMinutes > 0 ? '含工作日加班' : '工时正常')}}
         </text>
       </view>
     </view>
   </view>
 
-  <!-- 4. 弹性与加班规则可视化卡片 -->
+  <!-- 4. 弹性与加班修正规则可视化卡片 -->
   <view class="rule-card card">
     <view class="rule-card-header" bindtap="toggleRuleDetail">
       <view class="rule-header-left">
         <text class="rule-icon">⏱</text>
-        <text class="rule-header-title">打卡与弹性规则说明</text>
+        <text class="rule-header-title">打卡与最新加班规则</text>
       </view>
       <text class="rule-toggle-icon">{{showRuleDetail ? '▲' : '▼'}}</text>
     </view>
@@ -151,19 +151,19 @@
     <view class="timeline-visual">
       <view class="tl-segment tl-morning">
         <text class="tl-title">08:00 ~ 09:00</text>
-        <text class="tl-desc">弹性上班 (基准08:30)</text>
+        <text class="tl-desc">工作日弹性上班 (基准08:30)</text>
       </view>
       <view class="tl-segment tl-lunch">
         <text class="tl-title">11:40 ~ 13:40</text>
-        <text class="tl-desc">午休2小时 (不计工时)</text>
+        <text class="tl-desc">午休2h (工作日扣除/周末计入)</text>
       </view>
       <view class="tl-segment tl-evening">
-        <text class="tl-title">17:30 ~ 18:30</text>
-        <text class="tl-desc">弹性下班 (满7.5h)</text>
+        <text class="tl-title">下班后休息1h</text>
+        <text class="tl-desc">工作日休息后才开始计加班</text>
       </view>
       <view class="tl-segment tl-overtime">
-        <text class="tl-title">19:00 开始</text>
-        <text class="tl-desc">计入加班时长</text>
+        <text class="tl-title">周六日全额加班</text>
+        <text class="tl-desc">中午和晚上休息均计入加班</text>
       </view>
     </view>
 
@@ -172,29 +172,22 @@
       <view class="rule-item">
         <view class="rule-bullet"></view>
         <view class="rule-content">
-          <text class="rule-name">上班弹性机制：</text>
-          <text class="rule-text">基准 08:30，前后各弹性半小时 (08:00 ~ 09:00)。早于08:00以08:00起计；晚于09:00记为迟到。</text>
+          <text class="rule-name">工作日弹性上下班：</text>
+          <text class="rule-text">基准 08:30，前后弹性各30分钟 (08:00 ~ 09:00)。午休 11:40 ~ 13:40 不计工时，满 7.5 小时工时下班。</text>
         </view>
       </view>
       <view class="rule-item">
-        <view class="rule-bullet"></view>
+        <view class="rule-bullet bullet-accent"></view>
         <view class="rule-content">
-          <text class="rule-name">午休不计工时：</text>
-          <text class="rule-text">中午 11:40 到 13:40 为休息时间，共2小时，自动从实际工作时长中扣除。</text>
+          <text class="rule-name">工作日加班规则（新）：</text>
+          <text class="rule-text">周一至周五到了下班时间后，休息一个小时才开始计算加班时长。休息的一小时内不计入加班。</text>
         </view>
       </view>
       <view class="rule-item">
-        <view class="rule-bullet"></view>
+        <view class="rule-bullet bullet-weekend"></view>
         <view class="rule-content">
-          <text class="rule-name">下班满7.5h弹性机制：</text>
-          <text class="rule-text">08:00打卡17:30可下班；08:30打卡18:00下班；09:00打卡18:30下班，动态推算预计下班时间。</text>
-        </view>
-      </view>
-      <view class="rule-item">
-        <view class="rule-bullet"></view>
-        <view class="rule-content">
-          <text class="rule-name">加班时长计算：</text>
-          <text class="rule-text">晚上加班从 19:00 开始起算，19:00 之前（如晚餐与休息缓冲期）不计入加班时长。</text>
+          <text class="rule-name">周六周日加班规则（新）：</text>
+          <text class="rule-text">周六周日全天出勤均计为加班，且把中午、晚上的休息时间都全额计入加班时长（无任何扣减）。</text>
         </view>
       </view>
     </view>
@@ -243,12 +236,12 @@
       </view>
 
       <view class="form-item">
-        <text class="form-label">备注 (例如：外勤、补卡、事假)</text>
+        <text class="form-label">备注 (例如：外勤、周末加班、补卡)</text>
         <input class="text-input" placeholder="可输入备注信息" value="{{editRemark}}" bindinput="onEditRemarkChange" />
       </view>
 
       <view class="rule-hint-box">
-        <text class="rule-hint-text">💡 提示：保存后系统将自动按 08:00~09:00弹性、扣除11:40~13:40午休、从19:00起计加班重算各项指标。</text>
+        <text class="rule-hint-text">💡 提示：工作日下班后休息1小时起计加班；周六日中午与晚上休息均计入加班时长。</text>
       </view>
     </view>
 
