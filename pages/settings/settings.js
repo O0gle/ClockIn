@@ -1,6 +1,6 @@
 // pages/settings/settings.js
 const attendance = require('../../utils/attendance.js');
-const emailUtil = require('../../utils/email.js');
+const exportUtil = require('../../utils/export.js');
 
 Page({
   data: {
@@ -26,15 +26,6 @@ Page({
     restOptionsLabels: ['休息 30 分钟', '休息 45 分钟', '休息 60 分钟 (默认1小时)', '休息 90 分钟 (1.5小时)'],
     restIndex: 2,
 
-    // 邮箱配置 (收件邮箱、发件邮箱、SMTP授权码全保存在手机本地)
-    emailConfig: {
-      senderEmail: '',
-      senderPass: '',
-      targetEmail: ''
-    },
-    showEmailModal: false,
-    showPassSecret: true,
-
     // 动态计算的辅助说明
     flexStartRangeText: '08:00 ~ 09:00',
     flexEndRangeText: '17:30 ~ 18:30',
@@ -50,7 +41,6 @@ Page({
 
   onShow() {
     this.loadSettings();
-    this.loadEmailConfig();
   },
 
   loadSettings() {
@@ -75,11 +65,6 @@ Page({
     });
 
     this.recalcSummary(settings);
-  },
-
-  loadEmailConfig() {
-    const emailConfig = emailUtil.getEmailConfig();
-    this.setData({ emailConfig });
   },
 
   recalcSummary(settings) {
@@ -213,115 +198,7 @@ Page({
   },
 
   /**
-   * 邮箱配置弹窗与输入
-   */
-  openEmailModal() {
-    this.setData({ showEmailModal: true });
-  },
-
-  closeEmailModal() {
-    this.setData({ showEmailModal: false });
-  },
-
-  togglePassSecret() {
-    this.setData({ showPassSecret: !this.data.showPassSecret });
-  },
-
-  onSenderEmailInput(e) {
-    this.setData({ 'emailConfig.senderEmail': e.detail.value.trim() });
-  },
-
-  onSenderPassInput(e) {
-    this.setData({ 'emailConfig.senderPass': e.detail.value.trim() });
-  },
-
-  onTargetEmailInput(e) {
-    this.setData({ 'emailConfig.targetEmail': e.detail.value.trim() });
-  },
-
-  copySenderToTarget() {
-    const sender = this.data.emailConfig.senderEmail;
-    if (sender) {
-      this.setData({ 'emailConfig.targetEmail': sender });
-      wx.showToast({ title: '已同步为发件邮箱', icon: 'none' });
-    }
-  },
-
-  saveEmailConfigOnly() {
-    const { emailConfig } = this.data;
-    if (!emailConfig.senderEmail) {
-      wx.showToast({ title: '请填写发件邮箱', icon: 'none' });
-      return;
-    }
-    if (!emailConfig.senderPass) {
-      wx.showToast({ title: '请填写SMTP授权码', icon: 'none' });
-      return;
-    }
-    if (!emailConfig.targetEmail) {
-      wx.showToast({ title: '请填写接收邮箱', icon: 'none' });
-      return;
-    }
-
-    emailUtil.saveEmailConfig(emailConfig);
-    this.setData({ showEmailModal: false });
-    wx.showToast({ title: '邮箱设置已保存至本地', icon: 'success' });
-  },
-
-  /**
-   * 一键发送当前月考勤与加班明细到邮箱 (调用 sendMail 云函数)
-   */
-  triggerSendEmail() {
-    const { emailConfig, settings } = this.data;
-
-    // 检查是否完整配置
-    if (!emailConfig.senderEmail || !emailConfig.senderPass || !emailConfig.targetEmail) {
-      wx.showModal({
-        title: '请先配置收发邮箱',
-        content: '发送邮件需要设置您的【发件邮箱】、【SMTP授权码】与【收件邮箱】。\n设置后保存在您手机本地，安全私密。',
-        confirmText: '立即设置',
-        confirmColor: '#1677ff',
-        success: (res) => {
-          if (res.confirm) {
-            this.openEmailModal();
-          }
-        }
-      });
-      return;
-    }
-
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = now.getMonth() + 1;
-    const stats = attendance.getMonthStatistics(year, month, settings);
-    const allRecords = attendance.getAllRecords();
-
-    emailUtil.sendEmailReport({
-      year,
-      month,
-      statistics: stats,
-      settings,
-      allRecords
-    }, (err, res) => {
-      if (err) {
-        wx.showModal({
-          title: '发送遇到问题',
-          content: err.message + '\n\n您也可以直接使用下方的「导出 Excel」或「复制文本」进行备份。',
-          confirmText: '知道了',
-          confirmColor: '#1677ff'
-        });
-      } else {
-        wx.showModal({
-          title: '邮件已成功送达 🎉',
-          content: `考勤报表（含 HTML 美化排版与 Excel 附件）已通过您的发件箱：\n${emailConfig.senderEmail}\n成功投递到收件箱：\n${emailConfig.targetEmail}！`,
-          showCancel: false,
-          confirmColor: '#1677ff'
-        });
-      }
-    });
-  },
-
-  /**
-   * 生成并导出 Excel / CSV 报表文件
+   * 生成并导出 Excel / CSV 报表文件 (完全免费，原生微信文件打开与分享)
    */
   exportCsvReport() {
     const { settings } = this.data;
@@ -330,11 +207,20 @@ Page({
     const month = now.getMonth() + 1;
     const stats = attendance.getMonthStatistics(year, month, settings);
 
+    if (!stats || !stats.records || stats.records.length === 0) {
+      wx.showToast({ title: '本月暂无打卡数据', icon: 'none' });
+      return;
+    }
+
     wx.showLoading({ title: '正在生成表格...' });
-    emailUtil.exportCsvFile(year, month, stats, (err) => {
-      wx.hideLoading();
+    exportUtil.exportCsvFile(year, month, stats, (err) => {
       if (err) {
-        wx.showToast({ title: '文件生成失败', icon: 'none' });
+        wx.showModal({
+          title: '导出遇到问题',
+          content: err.message || '请确认微信存储权限',
+          showCancel: false,
+          confirmColor: '#1677ff'
+        });
       }
     });
   },
@@ -437,32 +323,6 @@ Page({
             icon: 'success'
           });
         }
-      }
-    });
-  },
-
-  /**
-   * 导出全部数据为 JSON
-   */
-  exportBackupData() {
-    const records = attendance.getAllRecords();
-    const settings = attendance.getSettings();
-    const backup = {
-      exportDate: new Date().toISOString(),
-      settings,
-      records
-    };
-    const jsonStr = JSON.stringify(backup, null, 2);
-
-    wx.setClipboardData({
-      data: jsonStr,
-      success: () => {
-        wx.showModal({
-          title: '备份成功',
-          content: '全部考勤配置与打卡数据已复制到剪贴板！',
-          showCancel: false,
-          confirmColor: '#1677ff'
-        });
       }
     });
   }

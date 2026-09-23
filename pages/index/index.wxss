@@ -167,6 +167,7 @@
   position: relative;
   transition: all 0.25s ease;
   user-select: none;
+  overflow: hidden;
 }
 
 .punch-inner {
@@ -174,6 +175,8 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  position: relative;
+  z-index: 2;
 }
 
 /* 上班打卡: 蓝青色渐变 */
@@ -198,6 +201,31 @@
 .punch-done {
   background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
   box-shadow: 0 16rpx 40rpx rgba(99, 102, 241, 0.3);
+  position: relative;
+}
+
+/* 长按5秒中的按压高亮态 */
+.punch-pressing {
+  transform: scale(0.97);
+  box-shadow: 0 0 36rpx rgba(245, 158, 11, 0.6) !important;
+  background: linear-gradient(135deg, #4338ca 0%, #312e81 100%) !important;
+}
+
+/* 水波纹向上注入进度遮罩 */
+.press-progress-wave {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(to top, rgba(245, 158, 11, 0.8), rgba(251, 191, 36, 0.5));
+  z-index: 1;
+  transition: height 0.05s linear;
+}
+
+.text-pressing {
+  color: #fef08a !important;
+  font-weight: 700 !important;
+  text-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.4);
 }
 
 .punch-hover {
@@ -675,12 +703,28 @@
 }
 
 .text-input {
-  background: #f8fafc;
-  border: 1rpx solid #cbd5e1;
-  border-radius: 16rpx;
-  padding: 20rpx 24rpx;
-  font-size: 28rpx;
+  height: 88rpx;
+  min-height: 88rpx;
+  line-height: 88rpx;
+  padding: 0 24rpx;
+  font-size: 30rpx;
   color: #0f172a;
+  background: #f8fafc;
+  border: 2rpx solid #cbd5e1;
+  border-radius: 16rpx;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.text-input:focus {
+  border-color: #1677ff;
+  background: #ffffff;
+}
+
+.placeholder-style {
+  color: #94a3b8;
+  font-size: 28rpx;
+  line-height: 88rpx;
 }
 
 .rule-hint-box {

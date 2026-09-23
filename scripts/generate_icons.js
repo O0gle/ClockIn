@@ -66,7 +66,7 @@ function createPNG(width, height, drawFn) {
   return Buffer.concat([signature, ihdrChunk, idatChunk, iendChunk]);
 }
 
-const SIZE = 64;
+const SIZE = 81; // 微信官方推荐尺寸 81x81
 const COLOR_INACTIVE = [140, 144, 153, 255]; // #8c9099
 const COLOR_ACTIVE = [22, 119, 255, 255];    // #1677ff
 
@@ -79,41 +79,32 @@ function distToSegment(px, py, x1, y1, x2, y2) {
   return Math.hypot(px - (x1 + t * (x2 - x1)), py - (y1 + t * (y2 - y1)));
 }
 
-// 1. Clock icon (Punch / Attendance)
+// 1. Clock icon (打卡)
 function drawClock(x, y, w, h, color, filled = false) {
-  const cx = 32, cy = 32;
+  const cx = 40.5, cy = 40.5;
   const d = Math.hypot(x - cx, y - cy);
-  const radius = 22;
-  const stroke = 3.5;
+  const radius = 28;
+  const stroke = 4.2;
 
-  // Outer ring
   const onRing = Math.abs(d - radius) <= stroke / 2;
-  // Center dot
-  const onCenter = d <= 3.5;
-  // Hour hand: from (32, 32) to (32, 20)
-  const dHour = distToSegment(x, y, cx, cy, cx, 19);
-  const onHour = dHour <= 2.2 && y <= cy + 1 && y >= 17;
-  // Minute hand: from (32, 32) to (44, 32)
-  const dMin = distToSegment(x, y, cx, cy, cx + 12, cy);
-  const onMin = dMin <= 2.0 && x >= cx - 1 && x <= cx + 13;
+  const onCenter = d <= 4.5;
+  const onHour = distToSegment(x, y, cx, cy, cx, 24) <= 2.8 && y <= cy + 1 && y >= 22;
+  const onMin = distToSegment(x, y, cx, cy, cx + 15, cy) <= 2.5 && x >= cx - 1 && x <= cx + 17;
 
   if (onRing || onCenter || onHour || onMin) {
     return color;
   }
   if (filled && d < radius) {
-    return [color[0], color[1], color[2], 30]; // Soft fill
+    return [color[0], color[1], color[2], 25];
   }
   return [0, 0, 0, 0];
 }
 
-// 2. Calendar / Record icon
+// 2. Calendar icon (明细)
 function drawCalendar(x, y, w, h, color, filled = false) {
-  // Box: x: 12..52, y: 16..52
-  const left = 13, right = 51, top = 16, bottom = 52;
-  const r = 4;
-  const stroke = 3.2;
+  const left = 16, right = 65, top = 20, bottom = 66;
+  const stroke = 4.0;
 
-  // Checks inside rounded rect
   const inBorder = (
     (Math.abs(x - left) <= stroke / 2 && y >= top && y <= bottom) ||
     (Math.abs(x - right) <= stroke / 2 && y >= top && y <= bottom) ||
@@ -121,50 +112,43 @@ function drawCalendar(x, y, w, h, color, filled = false) {
     (Math.abs(y - bottom) <= stroke / 2 && x >= left && x <= right)
   );
 
-  // Top header divider line: y = 26
-  const onDivider = Math.abs(y - 27) <= 1.8 && x >= left && x <= right;
+  const onDivider = Math.abs(y - 34) <= 2.0 && x >= left && x <= right;
+  const ring1 = Math.abs(x - 28) <= 2.2 && y >= 12 && y <= 24;
+  const ring2 = Math.abs(x - 53) <= 2.2 && y >= 12 && y <= 24;
 
-  // Two top binder rings: at x=22 and x=42, from y=11 to y=19
-  const ring1 = Math.abs(x - 23) <= 1.8 && y >= 10 && y <= 19;
-  const ring2 = Math.abs(x - 41) <= 1.8 && y >= 10 && y <= 19;
-
-  // Calendar inner dots/ticks
-  const isDot1 = Math.hypot(x - 22, y - 36) <= 2.5;
-  const isDot2 = Math.hypot(x - 32, y - 36) <= 2.5;
-  const isDot3 = Math.hypot(x - 42, y - 36) <= 2.5;
-  const isDot4 = Math.hypot(x - 22, y - 44) <= 2.5;
-  const isDot5 = Math.hypot(x - 32, y - 44) <= 2.5;
-  const isDot6 = Math.hypot(x - 42, y - 44) <= 2.5;
+  const isDot1 = Math.hypot(x - 27, y - 45) <= 3.2;
+  const isDot2 = Math.hypot(x - 40.5, y - 45) <= 3.2;
+  const isDot3 = Math.hypot(x - 54, y - 45) <= 3.2;
+  const isDot4 = Math.hypot(x - 27, y - 56) <= 3.2;
+  const isDot5 = Math.hypot(x - 40.5, y - 56) <= 3.2;
+  const isDot6 = Math.hypot(x - 54, y - 56) <= 3.2;
 
   if (inBorder || onDivider || ring1 || ring2 || isDot1 || isDot2 || isDot3 || isDot4 || isDot5 || isDot6) {
     return color;
   }
-  if (filled && x > left && x < right && y > top && y < 27) {
-    return [color[0], color[1], color[2], 60];
+  if (filled && x > left && x < right && y > top && y < 34) {
+    return [color[0], color[1], color[2], 70];
   }
   return [0, 0, 0, 0];
 }
 
-// 3. Setting gear icon
+// 3. Setting gear icon (设置)
 function drawSetting(x, y, w, h, color, filled = false) {
-  const cx = 32, cy = 32;
+  const cx = 40.5, cy = 40.5;
   const d = Math.hypot(x - cx, y - cy);
-  const stroke = 3.2;
+  const stroke = 4.0;
 
-  // Center hole
-  const onCenterHole = Math.abs(d - 7.5) <= stroke / 2;
-  // Gear body ring
-  const onGearRing = d >= 8 && d <= 16.5;
+  const onCenterHole = Math.abs(d - 9.5) <= stroke / 2;
+  const onGearRing = d >= 10 && d <= 21;
 
-  // 6 or 8 teeth around radius 16.5 to 22.5
   const angle = Math.atan2(y - cy, x - cx);
   const toothCount = 6;
   const normalizedAngle = (angle + Math.PI * 2) % (Math.PI * 2);
   const sector = (normalizedAngle / (Math.PI * 2)) * toothCount;
   const frac = sector - Math.floor(sector);
-  const isTooth = d <= 22 && d >= 15 && (frac < 0.38 || frac > 0.62);
+  const isTooth = d <= 28 && d >= 19 && (frac < 0.38 || frac > 0.62);
 
-  if (onCenterHole || (onGearRing && d >= 12.5) || isTooth) {
+  if (onCenterHole || (onGearRing && d >= 15) || isTooth) {
     return color;
   }
   return [0, 0, 0, 0];
@@ -182,4 +166,4 @@ fs.writeFileSync(path.join(imagesDir, 'tab-record-active.png'), createPNG(SIZE, 
 fs.writeFileSync(path.join(imagesDir, 'tab-setting.png'), createPNG(SIZE, SIZE, (x, y, w, h) => drawSetting(x, y, w, h, COLOR_INACTIVE, false)));
 fs.writeFileSync(path.join(imagesDir, 'tab-setting-active.png'), createPNG(SIZE, SIZE, (x, y, w, h) => drawSetting(x, y, w, h, COLOR_ACTIVE, true)));
 
-console.log('All tab icons generated successfully in images/');
+console.log('All 81x81 tab icons generated successfully in images/');

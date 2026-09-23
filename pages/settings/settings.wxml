@@ -121,7 +121,7 @@
       </picker>
     </view>
 
-    <!-- 7. 工作日下班后休息时长 (重点规则修正) -->
+    <!-- 7. 工作日下班后休息时长 (重点规则) -->
     <view class="setting-row row-highlight">
       <view class="row-left">
         <text class="row-title ot-color">工作日下班休息时长</text>
@@ -147,53 +147,34 @@
     </view>
   </view>
 
-  <!-- 3. 邮箱备份与导出 (收件、发件与授权码全保存在本地) -->
-  <view class="email-section card">
-    <view class="section-title-between">
-      <view>
-        <text class="section-title-text">邮箱云端自动备份</text>
-        <text class="section-sub-text">自建发信通道 · 安全私密</text>
-      </view>
-      <text class="config-link" bindtap="openEmailModal">{{(emailConfig.senderEmail && emailConfig.targetEmail) ? '修改设置' : '配置收发邮箱'}}</text>
-    </view>
-
-    <!-- 邮箱状态条 -->
-    <view class="email-status-card" bindtap="openEmailModal">
-      <view class="email-status-row">
-        <text class="email-status-label">发件邮箱：</text>
-        <text class="email-status-val {{emailConfig.senderEmail ? '' : 'text-placeholder'}}">{{emailConfig.senderEmail || '未配置 (点击设置)'}}</text>
-      </view>
-      <view class="email-status-row">
-        <text class="email-status-label">SMTP授权码：</text>
-        <text class="email-status-val {{emailConfig.senderPass ? 'text-success' : 'text-placeholder'}}">{{emailConfig.senderPass ? '已配置 (已安全保存在本地)' : '未配置 (点击设置)'}}</text>
-      </view>
-      <view class="email-status-row">
-        <text class="email-status-label">收件邮箱：</text>
-        <text class="email-status-val {{emailConfig.targetEmail ? '' : 'text-placeholder'}}">{{emailConfig.targetEmail || '未配置 (点击设置)'}}</text>
-      </view>
-    </view>
-
-    <!-- 邮件操作按钮 -->
-    <view class="email-btn-group">
-      <button class="email-act-btn primary" hover-class="hover-effect" bindtap="triggerSendEmail">
-        <text>✉ 立即发送本月考勤报表到邮箱</text>
-      </button>
-      <button class="email-act-btn" hover-class="hover-effect" bindtap="exportCsvReport">
-        <text>📊 导出 Excel (CSV) 文件</text>
-      </button>
-    </view>
-  </view>
-
-  <!-- 4. 数据管理与演示 -->
+  <!-- 3. 数据管理与报表导出 (100% 纯本地、永久免费、微信原生) -->
   <view class="data-section card">
     <view class="section-title">
-      <text class="section-title-text">数据与辅助工具</text>
+      <text class="section-title-text">数据与报表工具</text>
+      <text class="section-sub-text">纯本地存储 · 100% 永久免费</text>
     </view>
 
     <view class="action-list">
+      <!-- 导出 Excel 表格 -->
+      <view class="action-item" hover-class="hover-effect" bindtap="exportCsvReport">
+        <view class="item-left">
+          <view class="item-icon-wrap wrap-excel">
+            <text class="item-icon">📊</text>
+          </view>
+          <view class="item-text-group">
+            <text class="item-title">导出 Excel (CSV) 考勤报表</text>
+            <text class="item-desc">生成带 UTF-8 BOM 的标准表格，微信直接打开或发送</text>
+          </view>
+        </view>
+        <text class="action-arrow">›</text>
+      </view>
+
+      <!-- 导入演示数据 -->
       <view class="action-item" hover-class="hover-effect" bindtap="loadDemoData">
         <view class="item-left">
-          <text class="item-icon">✨</text>
+          <view class="item-icon-wrap wrap-demo">
+            <text class="item-icon">✨</text>
+          </view>
           <view class="item-text-group">
             <text class="item-title">导入演示示例数据</text>
             <text class="item-desc">生成工作日休息1h起算加班、周六日全额计加班的代表性样本</text>
@@ -202,20 +183,12 @@
         <text class="action-arrow">›</text>
       </view>
 
-      <view class="action-item" hover-class="hover-effect" bindtap="exportBackupData">
+      <!-- 清空记录 -->
+      <view class="action-item" hover-class="hover-effect" bindtap="clearAllRecords">
         <view class="item-left">
-          <text class="item-icon">📦</text>
-          <view class="item-text-group">
-            <text class="item-title">备份全部考勤数据</text>
-            <text class="item-desc">复制全部打卡与配置为 JSON 文本</text>
+          <view class="item-icon-wrap wrap-danger">
+            <text class="item-icon">🗑</text>
           </view>
-        </view>
-        <text class="action-arrow">›</text>
-      </view>
-
-      <view class="action-item danger-item" hover-class="hover-effect" bindtap="clearAllRecords">
-        <view class="item-left">
-          <text class="item-icon">🗑</text>
           <view class="item-text-group">
             <text class="item-title text-danger">清空所有打卡记录</text>
             <text class="item-desc">清除手机本地保存的历史打卡记录</text>
@@ -226,63 +199,41 @@
     </view>
   </view>
 
-  <!-- 5. 关于卡片 -->
+  <!-- 4. 关于卡片 -->
   <view class="about-card card">
     <view class="about-header">
       <text class="about-app-name">弹性打卡助手</text>
-      <text class="about-version">v1.2.0 (邮件云备份版)</text>
+      <text class="about-version">v1.3.0</text>
     </view>
-    <text class="about-desc">支持工作日弹性上下班（08:30±30m、18:00±30m），自动扣除11:40~13:40午休；工作日下班后休息1小时才开始计算加班时长；周六周日出勤全天计加班，且中午和晚上的休息时间都全额计入加班时长。支持全量数据直发个人邮箱，零费用持久保存。</text>
+    <view class="about-rules-list">
+      <view class="about-rule-item">
+        <text class="about-num">1、</text>
+        <view class="about-content">
+          <text class="about-bold">弹性上下班：</text>
+          <text class="about-text">基准 08:30，前后各弹性半小时（08:00 ~ 09:00），系统按每日 7.5 小时标准工时动态推算预计下班时间。</text>
+        </view>
+      </view>
+      <view class="about-rule-item">
+        <text class="about-num">2、</text>
+        <view class="about-content">
+          <text class="about-bold">午休自动扣除：</text>
+          <text class="about-text">中午 11:40 ~ 13:40 为休息时间（共 2 小时），工作日计算实际在岗工时时自动扣除，不计入工作时长。</text>
+        </view>
+      </view>
+      <view class="about-rule-item">
+        <text class="about-num">3、</text>
+        <view class="about-content">
+          <text class="about-bold">工作日加班规则：</text>
+          <text class="about-text">周一至周五到了满工时下班时间后，休息一个小时才开始计算加班时长（休息的 1 小时内不计入加班）。</text>
+        </view>
+      </view>
+      <view class="about-rule-item">
+        <text class="about-num">4、</text>
+        <view class="about-content">
+          <text class="about-bold">周六日加班规则：</text>
+          <text class="about-text">周六周日全天出勤均计为加班，且把中午（11:40~13:40）及晚上的休息时间都全额计入加班时长（无任何扣除）。</text>
+        </view>
+      </view>
+    </view>
   </view>
 </scroll-view>
-
-<!-- 邮箱设置弹窗 -->
-<view class="modal-mask" wx:if="{{showEmailModal}}" bindtap="closeEmailModal">
-  <view class="modal-dialog modal-dialog-lg" catchtap="true">
-    <view class="modal-header">
-      <text class="modal-title">设置收发邮箱与SMTP</text>
-      <text class="modal-close" bindtap="closeEmailModal">✕</text>
-    </view>
-
-    <view class="modal-body modal-body-scroll">
-      <!-- 1. 发件邮箱 -->
-      <view class="form-item">
-        <text class="form-label">发件邮箱账号 *</text>
-        <input class="text-input" placeholder="例如：12345678@qq.com 或 xxx@163.com" value="{{emailConfig.senderEmail}}" bindinput="onSenderEmailInput" />
-        <text class="form-item-tip">推荐使用个人 QQ 邮箱或 163 邮箱作为发件源。</text>
-      </view>
-
-      <!-- 2. SMTP 授权码 -->
-      <view class="form-item">
-        <view class="label-with-action">
-          <text class="form-label">发件邮箱 SMTP 授权码 *</text>
-          <text class="toggle-pwd-link" bindtap="togglePassSecret">{{showPassSecret ? '显示密码' : '隐藏密码'}}</text>
-        </view>
-        <input class="text-input" password="{{showPassSecret}}" placeholder="填入16位英文授权码 (非QQ密码)" value="{{emailConfig.senderPass}}" bindinput="onSenderPassInput" />
-        <view class="smtp-help-box">
-          <text class="help-title">📌 QQ邮箱授权码获取方式 (电脑端1分钟开启)：</text>
-          <text class="help-text">登录 mail.qq.com → 设置 → 账户 → 开启「POP3/SMTP服务」→ 按提示发送短信即可获得16位授权码。</text>
-        </view>
-      </view>
-
-      <!-- 3. 收件邮箱 -->
-      <view class="form-item">
-        <view class="label-with-action">
-          <text class="form-label">接收邮箱地址 *</text>
-          <text class="toggle-pwd-link" bindtap="copySenderToTarget">同发件邮箱</text>
-        </view>
-        <input class="text-input" placeholder="接收报表的邮箱 (如工作邮箱或QQ邮箱)" value="{{emailConfig.targetEmail}}" bindinput="onTargetEmailInput" />
-        <text class="form-item-tip">用于接收月度考勤HTML报表与Excel表格附件。</text>
-      </view>
-
-      <view class="security-tip-box">
-        <text class="security-tip-text">🔒 安全声明：发件账号与授权码仅保存在您的手机本地存储中，不上传至任何第三方服务器。</text>
-      </view>
-    </view>
-
-    <view class="modal-footer">
-      <button class="btn-cancel" bindtap="closeEmailModal">取消</button>
-      <button class="btn-confirm" bindtap="saveEmailConfigOnly">保存到本地</button>
-    </view>
-  </view>
-</view>

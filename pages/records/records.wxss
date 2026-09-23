@@ -171,12 +171,12 @@
   border-radius: 20rpx;
 }
 
-.export-link.link-email {
+.export-link.link-excel {
   background: #f0fdf4;
   border-color: #bbf7d0;
 }
 
-.export-link.link-email .export-text {
+.export-link.link-excel .export-text {
   color: #059669;
 }
 
@@ -676,12 +676,28 @@
 }
 
 .text-input {
-  background: #f8fafc;
-  border: 1rpx solid #cbd5e1;
-  border-radius: 16rpx;
-  padding: 20rpx 24rpx;
-  font-size: 28rpx;
+  height: 88rpx;
+  min-height: 88rpx;
+  line-height: 88rpx;
+  padding: 0 24rpx;
+  font-size: 30rpx;
   color: #0f172a;
+  background: #f8fafc;
+  border: 2rpx solid #cbd5e1;
+  border-radius: 16rpx;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.text-input:focus {
+  border-color: #1677ff;
+  background: #ffffff;
+}
+
+.placeholder-style {
+  color: #94a3b8;
+  font-size: 28rpx;
+  line-height: 88rpx;
 }
 
 .modal-footer {

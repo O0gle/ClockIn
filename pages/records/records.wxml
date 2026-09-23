@@ -56,17 +56,9 @@
         <text class="tip-text">工作日下班休息1h起算 / 周末休息全计入加班</text>
       </view>
       <view class="export-actions">
-        <view class="export-link link-email" hover-class="hover-effect" bindtap="sendMonthEmail">
-          <text class="export-icon">✉</text>
-          <text class="export-text">发邮箱</text>
-        </view>
-        <view class="export-link" hover-class="hover-effect" bindtap="exportCsvReport">
+        <view class="export-link link-excel" hover-class="hover-effect" bindtap="exportCsvReport">
           <text class="export-icon">📊</text>
-          <text class="export-text">Excel</text>
-        </view>
-        <view class="export-link" hover-class="hover-effect" bindtap="exportMonthData">
-          <text class="export-icon">📋</text>
-          <text class="export-text">复制</text>
+          <text class="export-text">导出 Excel</text>
         </view>
       </view>
     </view>
@@ -113,9 +105,7 @@
     <view class="detail-header">
       <view class="detail-date-wrap">
         <text class="detail-date">{{selectedDateStr}}</text>
-        <text class="badge badge-{{selectedDayRecord.overtimeMinutes > 0 ? 'accent' : (selectedDayRecord.summaryStatus === 'normal' ? 'success' : 'default')}}">
-          {{selectedDayRecord.summaryStatusText || '未打卡'}}
-        </text>
+        <text class="badge badge-{{selectedDayRecord.overtimeMinutes > 0 ? 'accent' : (selectedDayRecord.summaryStatus === 'normal' ? 'success' : 'default')}}">{{selectedDayRecord.summaryStatusText || '未打卡'}}</text>
       </view>
       <view class="detail-actions">
         <view class="action-btn-sm" hover-class="hover-effect" data-date="{{selectedDateStr}}" bindtap="openEditModal">
@@ -176,9 +166,7 @@
           <view class="record-row-top">
             <view class="row-date-group">
               <text class="row-date">{{item.date}}</text>
-              <text class="badge badge-{{item.overtimeMinutes > 0 ? 'accent' : (item.summaryStatus === 'normal' ? 'success' : 'warning')}}">
-                {{item.summaryStatusText}}
-              </text>
+              <text class="badge badge-{{item.overtimeMinutes > 0 ? 'accent' : (item.summaryStatus === 'normal' ? 'success' : 'warning')}}">{{item.summaryStatusText}}</text>
             </view>
             <view class="row-btn-group">
               <text class="row-edit-link" data-date="{{item.date}}" bindtap="openEditModal">编辑</text>

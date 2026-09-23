@@ -31,11 +31,20 @@ Page({
     editSignOutTime: '',
     editRemark: '',
 
+    // 长按5秒更新下班打卡状态
+    isPressing: false,
+    pressPercent: 0,
+    pressRemaining: 5,
+
     // 规则折叠说明
     showRuleDetail: false
   },
 
   timer: null,
+  pressTimer: null,
+  longPressDetectTimer: null,
+  pressStartTime: 0,
+  hasTriggeredLongPress: false,
 
   onLoad() {
     this.initPage();
@@ -48,10 +57,12 @@ Page({
 
   onHide() {
     this.stopClock();
+    this.clearPressTimer();
   },
 
   onUnload() {
     this.stopClock();
+    this.clearPressTimer();
   },
 
   onPullDownRefresh() {
@@ -339,22 +350,119 @@ Page({
       }
     }
 
-    // 如果已经打过下班卡，询问是否更新
-    if (record.signOutTime) {
-      wx.showModal({
-        title: '更新下班打卡时间？',
-        content: `原下班时间为 ${record.signOutTime}，确定更新为当前时间 ${timeStr} 吗？`,
-        confirmColor: '#1677ff',
-        success: (res) => {
-          if (res.confirm) {
-            this.doSavePunchOut(today, timeStr);
-          }
-        }
-      });
-      return;
-    }
-
     this.doSavePunchOut(today, timeStr);
+  },
+
+  /**
+   * 已打下班卡时：按住判断意图 (长按5秒防误触机制)
+   */
+  handleDoneTouchStart() {
+    this.pressStartTime = Date.now();
+    this.hasTriggeredLongPress = false;
+    this.clearPressTimer();
+
+    // 设置 350 毫秒按压缓冲阈值：
+    // 如果手指在 350ms 内抬起，判定为普通点按，绝对不进入长按状态与震动！
+    // 只有按住超过 350ms，才正式确认长按意图并展示水波纹与倒计时！
+    this.longPressDetectTimer = setTimeout(() => {
+      this.setData({
+        isPressing: true,
+        pressPercent: 0,
+        pressRemaining: 5
+      });
+
+      wx.vibrateShort({ type: 'medium' });
+
+      const totalMs = 5000;
+      this.pressTimer = setInterval(() => {
+        const elapsed = Date.now() - this.pressStartTime;
+        const percent = Math.min(100, Math.floor((elapsed / totalMs) * 100));
+        const remaining = Math.max(0, Math.ceil((totalMs - elapsed) / 1000));
+
+        if (remaining !== this.data.pressRemaining && remaining > 0) {
+          wx.vibrateShort({ type: 'light' });
+        }
+
+        this.setData({
+          pressPercent: percent,
+          pressRemaining: remaining
+        });
+
+        if (elapsed >= totalMs) {
+          // 满 5 秒，成功解锁！
+          this.clearPressTimer();
+          this.hasTriggeredLongPress = true;
+
+          this.setData({
+            isPressing: false,
+            pressPercent: 100,
+            pressRemaining: 0
+          });
+
+          // 成功长震动反馈
+          wx.vibrateLong();
+
+          // 弹窗确认更新下班时间
+          this.confirmUpdateSignOut();
+        }
+      }, 50);
+    }, 350);
+  },
+
+  /**
+   * 松开按键
+   */
+  handleDoneTouchEnd() {
+    this.clearPressTimer();
+
+    if (this.data.isPressing) {
+      this.setData({
+        isPressing: false,
+        pressPercent: 0,
+        pressRemaining: 5
+      });
+    }
+  },
+
+  /**
+   * 短按静默拦截 (点按不作任何反应，防误触)
+   */
+  handleDoneTap() {
+    // 纯点按静默防误触，不弹出任何 Toast 提示
+  },
+
+  clearPressTimer() {
+    if (this.longPressDetectTimer) {
+      clearTimeout(this.longPressDetectTimer);
+      this.longPressDetectTimer = null;
+    }
+    if (this.pressTimer) {
+      clearInterval(this.pressTimer);
+      this.pressTimer = null;
+    }
+  },
+
+  /**
+   * 长按满 5 秒后唤起确认更新
+   */
+  confirmUpdateSignOut() {
+    const now = new Date();
+    const timeStr = attendance.getCurrentTimeStr(now);
+    const today = attendance.getTodayDateStr(now);
+    const { record } = this.data;
+
+    wx.showModal({
+      title: '已长按解锁 🔓',
+      content: `原下班时间为 ${record.signOutTime}，确定要将下班时间更新为当前时间 ${timeStr} 吗？`,
+      confirmText: '确认更新',
+      cancelText: '取消',
+      confirmColor: '#1677ff',
+      success: (res) => {
+        if (res.confirm) {
+          this.doSavePunchOut(today, timeStr);
+        }
+      }
+    });
   },
 
   doSavePunchOut(today, timeStr) {

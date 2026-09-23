@@ -43,12 +43,20 @@
         </view>
       </view>
 
-      <!-- 状态C: 已打下班卡 -->
-      <view wx:else class="punch-circle punch-done" hover-class="punch-hover" bindtap="handlePunchOut">
+      <!-- 状态C: 已打下班卡 (需长按5秒防误触解锁再次打卡) -->
+      <view wx:else class="punch-circle punch-done {{isPressing ? 'punch-pressing' : ''}}"
+            bindtap="handleDoneTap"
+            bindtouchstart="handleDoneTouchStart"
+            bindtouchend="handleDoneTouchEnd"
+            bindtouchcancel="handleDoneTouchEnd">
+        <!-- 长按水波纹上升进度遮罩 -->
+        <view class="press-progress-wave" wx:if="{{isPressing}}" style="height: {{pressPercent}}%;"></view>
         <view class="punch-inner">
-          <text class="punch-title">更新下班卡</text>
+          <text class="punch-title" wx:if="{{!isPressing}}">长按5秒打卡</text>
+          <text class="punch-title text-pressing" wx:else>还需按住 {{pressRemaining}}s</text>
           <text class="punch-time-hint">{{currentTimeText}}</text>
-          <text class="punch-rule-sub">原下班: {{record.signOutTime}}</text>
+          <text class="punch-rule-sub" wx:if="{{!isPressing}}">原下班: {{record.signOutTime}} · 防误触🔒</text>
+          <text class="punch-rule-sub text-pressing" wx:else>长按中... 松开取消</text>
         </view>
       </view>
     </view>
@@ -130,9 +138,7 @@
         <text class="summary-sub">{{isWeekend ? '(中午/晚间休息均已计入)' : '(已扣午休2小时)'}}</text>
       </view>
       <view class="work-status-badge">
-        <text class="badge badge-{{record.overtimeMinutes > 0 ? 'accent' : 'success'}}">
-          {{isWeekend ? '周末全额加班' : (record.overtimeMinutes > 0 ? '含工作日加班' : '工时正常')}}
-        </text>
+        <text class="badge badge-{{record.overtimeMinutes > 0 ? 'accent' : 'success'}}">{{isWeekend ? '周末全额加班' : (record.overtimeMinutes > 0 ? '含工作日加班' : '工时正常')}}</text>
       </view>
     </view>
   </view>

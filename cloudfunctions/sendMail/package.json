@@ -1,9 +1,6 @@
 {
   "name": "sendMail",
   "version": "1.0.0",
-  "description": "微信小程序考勤报表邮件发送云函数",
-  "main": "index.js",
-  "dependencies": {
-    "nodemailer": "^6.9.13"
-  }
+  "description": "placeholder",
+  "main": "index.js"
 }
