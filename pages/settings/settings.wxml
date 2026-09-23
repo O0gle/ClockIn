@@ -147,32 +147,36 @@
     </view>
   </view>
 
-  <!-- 3. 邮箱备份与导出 (免费云端备份方案) -->
+  <!-- 3. 邮箱备份与导出 (收件、发件与授权码全保存在本地) -->
   <view class="email-section card">
     <view class="section-title-between">
       <view>
-        <text class="section-title-text">邮箱备份与报表导出</text>
-        <text class="section-sub-text">100% 永久免费</text>
+        <text class="section-title-text">邮箱云端自动备份</text>
+        <text class="section-sub-text">自建发信通道 · 安全私密</text>
       </view>
-      <text class="config-link" bindtap="openEmailModal">{{emailConfig.targetEmail ? '修改邮箱' : '配置邮箱'}}</text>
+      <text class="config-link" bindtap="openEmailModal">{{(emailConfig.senderEmail && emailConfig.targetEmail) ? '修改设置' : '配置收发邮箱'}}</text>
     </view>
 
     <!-- 邮箱状态条 -->
-    <view class="email-status-bar" bindtap="openEmailModal">
-      <view class="email-bar-left">
-        <text class="email-icon">📬</text>
-        <view class="email-info">
-          <text class="email-addr">{{emailConfig.targetEmail || '未绑定接收邮箱 (点击设置)'}}</text>
-          <text class="email-sub">{{emailConfig.targetEmail ? '已就绪，点击可随时修改' : '填入QQ/163/工作邮箱即可一键备份'}}</text>
-        </view>
+    <view class="email-status-card" bindtap="openEmailModal">
+      <view class="email-status-row">
+        <text class="email-status-label">发件邮箱：</text>
+        <text class="email-status-val {{emailConfig.senderEmail ? '' : 'text-placeholder'}}">{{emailConfig.senderEmail || '未配置 (点击设置)'}}</text>
       </view>
-      <text class="email-arrow">›</text>
+      <view class="email-status-row">
+        <text class="email-status-label">SMTP授权码：</text>
+        <text class="email-status-val {{emailConfig.senderPass ? 'text-success' : 'text-placeholder'}}">{{emailConfig.senderPass ? '已配置 (已安全保存在本地)' : '未配置 (点击设置)'}}</text>
+      </view>
+      <view class="email-status-row">
+        <text class="email-status-label">收件邮箱：</text>
+        <text class="email-status-val {{emailConfig.targetEmail ? '' : 'text-placeholder'}}">{{emailConfig.targetEmail || '未配置 (点击设置)'}}</text>
+      </view>
     </view>
 
     <!-- 邮件操作按钮 -->
     <view class="email-btn-group">
       <button class="email-act-btn primary" hover-class="hover-effect" bindtap="triggerSendEmail">
-        <text>✉ 发送当月考勤报表到邮箱</text>
+        <text>✉ 立即发送本月考勤报表到邮箱</text>
       </button>
       <button class="email-act-btn" hover-class="hover-effect" bindtap="exportCsvReport">
         <text>📊 导出 Excel (CSV) 文件</text>
@@ -234,29 +238,51 @@
 
 <!-- 邮箱设置弹窗 -->
 <view class="modal-mask" wx:if="{{showEmailModal}}" bindtap="closeEmailModal">
-  <view class="modal-dialog" catchtap="true">
+  <view class="modal-dialog modal-dialog-lg" catchtap="true">
     <view class="modal-header">
-      <text class="modal-title">设置备份邮箱</text>
+      <text class="modal-title">设置收发邮箱与SMTP</text>
       <text class="modal-close" bindtap="closeEmailModal">✕</text>
     </view>
 
-    <view class="modal-body">
+    <view class="modal-body modal-body-scroll">
+      <!-- 1. 发件邮箱 -->
       <view class="form-item">
-        <text class="form-label">接收邮箱地址 *</text>
-        <input class="text-input" placeholder="例如：your_name@qq.com" value="{{emailConfig.targetEmail}}" bindinput="onTargetEmailInput" />
-        <text class="form-item-tip">用于接收月度考勤、加班报表与数据恢复备份。</text>
+        <text class="form-label">发件邮箱账号 *</text>
+        <input class="text-input" placeholder="例如：12345678@qq.com 或 xxx@163.com" value="{{emailConfig.senderEmail}}" bindinput="onSenderEmailInput" />
+        <text class="form-item-tip">推荐使用个人 QQ 邮箱或 163 邮箱作为发件源。</text>
       </view>
 
+      <!-- 2. SMTP 授权码 -->
       <view class="form-item">
-        <text class="form-label">Web3Forms Access Key (用于一键直发)</text>
-        <input class="text-input" placeholder="可填入免费 Key (可选)" value="{{emailConfig.accessKey}}" bindinput="onAccessKeyInput" />
-        <text class="form-item-tip">💡 提示：访问 web3forms.com 填写邮箱即可免费秒获 Key；若不填也可一键复制完整邮件文本或导出Excel发信！</text>
+        <view class="label-with-action">
+          <text class="form-label">发件邮箱 SMTP 授权码 *</text>
+          <text class="toggle-pwd-link" bindtap="togglePassSecret">{{showPassSecret ? '显示密码' : '隐藏密码'}}</text>
+        </view>
+        <input class="text-input" password="{{showPassSecret}}" placeholder="填入16位英文授权码 (非QQ密码)" value="{{emailConfig.senderPass}}" bindinput="onSenderPassInput" />
+        <view class="smtp-help-box">
+          <text class="help-title">📌 QQ邮箱授权码获取方式 (电脑端1分钟开启)：</text>
+          <text class="help-text">登录 mail.qq.com → 设置 → 账户 → 开启「POP3/SMTP服务」→ 按提示发送短信即可获得16位授权码。</text>
+        </view>
+      </view>
+
+      <!-- 3. 收件邮箱 -->
+      <view class="form-item">
+        <view class="label-with-action">
+          <text class="form-label">接收邮箱地址 *</text>
+          <text class="toggle-pwd-link" bindtap="copySenderToTarget">同发件邮箱</text>
+        </view>
+        <input class="text-input" placeholder="接收报表的邮箱 (如工作邮箱或QQ邮箱)" value="{{emailConfig.targetEmail}}" bindinput="onTargetEmailInput" />
+        <text class="form-item-tip">用于接收月度考勤HTML报表与Excel表格附件。</text>
+      </view>
+
+      <view class="security-tip-box">
+        <text class="security-tip-text">🔒 安全声明：发件账号与授权码仅保存在您的手机本地存储中，不上传至任何第三方服务器。</text>
       </view>
     </view>
 
     <view class="modal-footer">
       <button class="btn-cancel" bindtap="closeEmailModal">取消</button>
-      <button class="btn-confirm" bindtap="saveEmailConfigOnly">保存邮箱</button>
+      <button class="btn-confirm" bindtap="saveEmailConfigOnly">保存到本地</button>
     </view>
   </view>
 </view>
