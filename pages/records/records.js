@@ -1,6 +1,7 @@
 // pages/records/records.js
 const attendance = require('../../utils/attendance.js');
 const exportUtil = require('../../utils/export.js');
+const importUtil = require('../../utils/import.js');
 
 Page({
   data: {
@@ -45,6 +46,32 @@ Page({
   },
 
   onShow() {
+    // 检查是否有新导入的数据指定要查看的目标月份
+    const target = wx.getStorageSync('records_view_target_month');
+    if (target && target.year && target.month) {
+      const pad = n => (n < 10 ? '0' + n : '' + n);
+      wx.removeStorageSync('records_view_target_month');
+
+      // 确保在 setData 完成后精准刷新日历
+      this.setData({
+        currentYear: target.year,
+        currentMonth: target.month,
+        selectedDateStr: target.date || this.data.selectedDateStr,
+        monthPickerValue: `${target.year}-${pad(target.month)}`,
+        viewMode: 'calendar' // 强制确保显示日历视图
+      }, () => {
+        this.loadMonthData();
+        if (target.count) {
+          wx.showToast({
+            title: `日历已更新 (${target.count}条)`,
+            icon: 'success',
+            duration: 2000
+          });
+        }
+      });
+      return;
+    }
+
     this.loadMonthData();
   },
 
@@ -113,6 +140,19 @@ Page({
 
       const isToday = dateStr === todayStr;
 
+      let statusMiniText = '';
+      if (rec) {
+        if (rec.overtimeMinutes > 0) {
+          statusMiniText = `+${attendance.formatHoursDecimal(rec.overtimeMinutes)}h`;
+        } else if (rec.signInStatus === 'late') {
+          statusMiniText = '迟到';
+        } else if (rec.signOutStatus === 'early_leave') {
+          statusMiniText = '早退';
+        } else {
+          statusMiniText = '正常';
+        }
+      }
+
       days.push({
         dayNumber: d,
         dateStr,
@@ -121,7 +161,8 @@ Page({
         hasRecord,
         record: rec,
         statusType: rec ? (rec.overtimeMinutes > 0 ? (rec.isWeekend ? 'weekend_ot' : 'overtime') : (rec.signInStatus === 'late' || rec.signOutStatus === 'early_leave' ? 'abnormal' : 'normal')) : 'none',
-        overtimeText: rec && rec.overtimeMinutes > 0 ? `+${attendance.formatHoursDecimal(rec.overtimeMinutes)}h` : ''
+        overtimeText: rec && rec.overtimeMinutes > 0 ? `+${attendance.formatHoursDecimal(rec.overtimeMinutes)}h` : '',
+        statusMiniText
       });
     }
 
@@ -299,23 +340,90 @@ Page({
   },
 
   /**
-   * 生成并导出 Excel 表格文件 (微信原生支持直接查看与分享)
+   * 明细页底部：根据日历当前选中的月份，导出该月份的考勤报表
    */
-  exportCsvReport() {
-    const { statistics, currentYear, currentMonth } = this.data;
+  exportCurrentMonthExcel() {
+    const { currentYear, currentMonth, statistics } = this.data;
     if (!statistics || !statistics.records || statistics.records.length === 0) {
-      wx.showToast({ title: '本月暂无打卡记录', icon: 'none' });
+      wx.showToast({ title: `${currentYear}年${currentMonth}月暂无考勤数据`, icon: 'none' });
       return;
     }
 
-    wx.showLoading({ title: '正在生成表格...' });
-    exportUtil.exportCsvFile(currentYear, currentMonth, statistics, (err) => {
+    wx.showLoading({ title: '正在导出表格...' });
+    exportUtil.exportExcelFile({
+      year: currentYear,
+      month: currentMonth,
+      statistics,
+      allMonths: false
+    }, (err) => {
       if (err) {
         wx.showModal({
           title: '导出遇到问题',
           content: err.message || '请确认微信存储权限',
           showCancel: false,
           confirmColor: '#1677ff'
+        });
+      }
+    });
+  },
+
+  /**
+   * 兼容旧调用名
+   */
+  exportCsvReport() {
+    this.exportCurrentMonthExcel();
+  },
+
+  /**
+   * 明细日历页直接导入外部表格 (直接更新日历，不弹确认view)
+   */
+  handleDirectImport() {
+    const settings = attendance.getSettings();
+
+    importUtil.chooseAndImportExcel(settings, (err, parseRes) => {
+      if (err) {
+        wx.showModal({
+          title: '导入遇到问题',
+          content: err.message || '解析失败，请检查文件格式',
+          showCancel: false,
+          confirmColor: '#1677ff'
+        });
+        return;
+      }
+
+      // 直接合并写入本地存储，不弹对话框打断！
+      const currentRecords = attendance.getAllRecords();
+      Object.assign(currentRecords, parseRes.records);
+      attendance.saveAllRecords(currentRecords);
+
+      // 直接切换到导入记录的月份并立即刷新日历！
+      if (parseRes.minDate) {
+        const parts = parseRes.minDate.split('-');
+        const targetYear = parseInt(parts[0], 10);
+        const targetMonth = parseInt(parts[1], 10);
+        const pad = n => (n < 10 ? '0' + n : '' + n);
+
+        this.setData({
+          currentYear: targetYear,
+          currentMonth: targetMonth,
+          selectedDateStr: parseRes.minDate,
+          monthPickerValue: `${targetYear}-${pad(targetMonth)}`,
+          viewMode: 'calendar' // 确保处于日历视图
+        }, () => {
+          // 重新读取并刷新日历与统计数据
+          this.loadMonthData();
+          wx.showToast({
+            title: `日历已更新 (${parseRes.count}条)`,
+            icon: 'success',
+            duration: 2500
+          });
+        });
+      } else {
+        this.loadMonthData();
+        wx.showToast({
+          title: `日历已更新 (${parseRes.count}条)`,
+          icon: 'success',
+          duration: 2500
         });
       }
     });

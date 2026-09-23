@@ -180,6 +180,15 @@
   color: #059669;
 }
 
+.export-link.link-import {
+  background: #fdf4ff;
+  border-color: #f5d0fe;
+}
+
+.export-link.link-import .export-text {
+  color: #9333ea;
+}
+
 .export-icon {
   font-size: 22rpx;
 }
@@ -282,15 +291,24 @@
 .ot-badge {
   background: #ea580c;
   color: #ffffff;
-  font-size: 16rpx;
-  padding: 0 6rpx;
+  font-size: 18rpx;
+  padding: 2rpx 8rpx;
   border-radius: 6rpx;
   font-weight: 600;
   line-height: 1.2;
+  white-space: nowrap;
 }
 
 .ot-badge.ot-badge-weekend {
   background: #7c3aed;
+}
+
+.ot-badge.ot-badge-normal {
+  background: #10b981;
+}
+
+.ot-badge.ot-badge-warning {
+  background: #f59e0b;
 }
 
 /* 选中的日期详情卡片 */
@@ -580,6 +598,46 @@
   border-radius: 16rpx;
   padding: 16rpx 40rpx;
   border: none;
+}
+
+/* 底部导出当月考勤报表按钮 */
+.bottom-export-section {
+  margin: 36rpx 8rpx 20rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.export-month-btn {
+  width: 100% !important;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #ffffff !important;
+  border-radius: 20rpx;
+  height: 92rpx;
+  line-height: 92rpx;
+  font-size: 30rpx;
+  font-weight: 600;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12rpx;
+  box-shadow: 0 8rpx 24rpx rgba(16, 185, 129, 0.25);
+}
+
+.btn-icon {
+  font-size: 32rpx;
+}
+
+.btn-text {
+  font-size: 30rpx;
+  letter-spacing: 1rpx;
+}
+
+.export-hint-text {
+  font-size: 22rpx;
+  color: #94a3b8;
+  margin-top: 14rpx;
 }
 
 /* 弹窗通用样式 */

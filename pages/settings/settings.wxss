@@ -235,6 +235,10 @@
   background: #ecfdf5;
 }
 
+.item-icon-wrap.wrap-import {
+  background: #fdf4ff;
+}
+
 .item-icon-wrap.wrap-demo {
   background: #eff6ff;
 }

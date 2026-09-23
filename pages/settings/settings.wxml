@@ -155,29 +155,29 @@
     </view>
 
     <view class="action-list">
-      <!-- 导出 Excel 表格 -->
+      <!-- 导出 Excel 表格 (全部所有月份) -->
       <view class="action-item" hover-class="hover-effect" bindtap="exportCsvReport">
         <view class="item-left">
           <view class="item-icon-wrap wrap-excel">
             <text class="item-icon">📊</text>
           </view>
           <view class="item-text-group">
-            <text class="item-title">导出 Excel (CSV) 考勤报表</text>
-            <text class="item-desc">生成带 UTF-8 BOM 的标准表格，微信直接打开或发送</text>
+            <text class="item-title">导出Excel考勤报表</text>
+            <text class="item-desc">导出全部历史月份的所有打卡与加班数据</text>
           </view>
         </view>
         <text class="action-arrow">›</text>
       </view>
 
-      <!-- 导入演示数据 -->
-      <view class="action-item" hover-class="hover-effect" bindtap="loadDemoData">
+      <!-- 📥 从外部表格导入 -->
+      <view class="action-item" hover-class="hover-effect" bindtap="handleImportExcel">
         <view class="item-left">
-          <view class="item-icon-wrap wrap-demo">
-            <text class="item-icon">✨</text>
+          <view class="item-icon-wrap wrap-import">
+            <text class="item-icon">📥</text>
           </view>
           <view class="item-text-group">
-            <text class="item-title">导入演示示例数据</text>
-            <text class="item-desc">生成工作日休息1h起算加班、周六日全额计加班的代表性样本</text>
+            <text class="item-title">导入Excel考勤报表</text>
+            <text class="item-desc">从微信聊天记录中选择表格，自动识别并重算工时加班</text>
           </view>
         </view>
         <text class="action-arrow">›</text>

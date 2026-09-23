@@ -25,12 +25,12 @@ view, text, scroll-view, input, button {
   transform: scale(0.998);
 }
 
-/* 标签通用样式 */
+/* 标签通用样式 (自适应文本宽度，绝不压缩) */
 .badge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0 16rpx;
+  padding: 0 18rpx;
   height: 44rpx;
   line-height: 40rpx;
   border-radius: 12rpx;
@@ -39,6 +39,9 @@ view, text, scroll-view, input, button {
   vertical-align: middle;
   text-align: center;
   box-sizing: border-box;
+  white-space: nowrap;
+  flex-shrink: 0;
+  width: auto;
 }
 
 .badge-success {

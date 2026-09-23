@@ -55,12 +55,6 @@
         <text class="tip-icon">ℹ</text>
         <text class="tip-text">工作日下班休息1h起算 / 周末休息全计入加班</text>
       </view>
-      <view class="export-actions">
-        <view class="export-link link-excel" hover-class="hover-effect" bindtap="exportCsvReport">
-          <text class="export-icon">📊</text>
-          <text class="export-text">导出 Excel</text>
-        </view>
-      </view>
     </view>
   </view>
 
@@ -84,16 +78,20 @@
               data-item="{{item}}" bindtap="onSelectDay">
           <text class="day-number">{{item.dayNumber}}</text>
 
-          <!-- 考勤状态小圆点与加班标签 -->
+          <!-- 考勤状态标签 -->
           <view class="day-tag-area" wx:if="{{item.hasRecord}}">
             <view wx:if="{{item.statusType === 'weekend_ot'}}" class="ot-badge ot-badge-weekend">
-              <text>{{item.overtimeText}}</text>
+              <text>{{item.overtimeText || '周末'}}</text>
             </view>
             <view wx:elif="{{item.statusType === 'overtime'}}" class="ot-badge">
               <text>{{item.overtimeText}}</text>
             </view>
-            <view wx:elif="{{item.statusType === 'normal'}}" class="dot dot-success"></view>
-            <view wx:elif="{{item.statusType === 'abnormal'}}" class="dot dot-warning"></view>
+            <view wx:elif="{{item.statusType === 'normal'}}" class="ot-badge ot-badge-normal">
+              <text>{{item.statusMiniText || '正常'}}</text>
+            </view>
+            <view wx:elif="{{item.statusType === 'abnormal'}}" class="ot-badge ot-badge-warning">
+              <text>{{item.statusMiniText}}</text>
+            </view>
           </view>
         </view>
       </block>
@@ -207,6 +205,15 @@
       <text class="empty-desc">前往首页打卡，或点击下方按钮手动补卡</text>
       <button class="empty-btn" bindtap="openEditModal">+ 手动补录考勤</button>
     </view>
+  </view>
+
+  <!-- 底部导出当前月份考勤报表按钮 (随日历月份动态联动) -->
+  <view class="bottom-export-section">
+    <button class="export-month-btn" hover-class="hover-effect" bindtap="exportCurrentMonthExcel">
+      <text class="btn-icon">📊</text>
+      <text class="btn-text">导出Excel考勤报表</text>
+    </button>
+    <text class="export-hint-text">导出当前日历显示的 {{currentYear}}年{{currentMonth}}月 考勤报表</text>
   </view>
 </scroll-view>
 

@@ -422,6 +422,7 @@
   border-radius: 16rpx;
   padding: 20rpx 24rpx;
   margin-top: 24rpx;
+  gap: 16rpx;
 }
 
 .work-summary-left {
@@ -429,6 +430,7 @@
   align-items: baseline;
   flex-wrap: wrap;
   gap: 8rpx;
+  flex: 1;
 }
 
 .summary-label {
@@ -445,6 +447,24 @@
 .summary-sub {
   font-size: 22rpx;
   color: #64748b;
+}
+
+.work-status-badge {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+.work-status-badge .badge {
+  white-space: nowrap;
+  padding: 0 22rpx;
+  height: 48rpx;
+  line-height: 44rpx;
+  border-radius: 14rpx;
+  font-size: 24rpx;
+  font-weight: 600;
+  flex-shrink: 0;
+  width: auto;
 }
 
 /* 4. 规则卡片 */

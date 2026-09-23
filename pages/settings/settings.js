@@ -1,6 +1,7 @@
 // pages/settings/settings.js
 const attendance = require('../../utils/attendance.js');
 const exportUtil = require('../../utils/export.js');
+const importUtil = require('../../utils/import.js');
 
 Page({
   data: {
@@ -198,26 +199,23 @@ Page({
   },
 
   /**
-   * 生成并导出 Excel / CSV 报表文件 (完全免费，原生微信文件打开与分享)
+   * 设置页：导出全部所有月份的考勤报表 (全量导出所有历史内容)
    */
   exportCsvReport() {
-    const { settings } = this.data;
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = now.getMonth() + 1;
-    const stats = attendance.getMonthStatistics(year, month, settings);
+    const allRecords = attendance.getAllRecords();
+    const allDates = Object.keys(allRecords);
 
-    if (!stats || !stats.records || stats.records.length === 0) {
-      wx.showToast({ title: '本月暂无打卡数据', icon: 'none' });
+    if (allDates.length === 0) {
+      wx.showToast({ title: '本地暂无打卡数据', icon: 'none' });
       return;
     }
 
-    wx.showLoading({ title: '正在生成表格...' });
-    exportUtil.exportCsvFile(year, month, stats, (err) => {
+    wx.showLoading({ title: '正在导出全部报表...' });
+    exportUtil.exportExcelFile({ allMonths: true }, (err) => {
       if (err) {
         wx.showModal({
           title: '导出遇到问题',
-          content: err.message || '请确认微信存储权限',
+          content: err.message || '请确认存储权限',
           showCancel: false,
           confirmColor: '#1677ff'
         });
@@ -226,83 +224,42 @@ Page({
   },
 
   /**
-   * 加载演示数据
+   * 调起微信聊天文件选择器，直接导入并更新日历 (无任何阻断弹窗)
    */
-  loadDemoData() {
-    wx.showModal({
-      title: '导入演示示例数据？',
-      content: '将为当前月份生成若干条打卡示例（含工作日弹性打卡、下班休息1h后起算加班，以及周六周日中午晚上休息全额计入加班的样例）。',
-      confirmColor: '#1677ff',
-      success: (res) => {
-        if (res.confirm) {
-          this.generateDemoRecords();
-        }
+  handleImportExcel() {
+    const { settings } = this.data;
+
+    importUtil.chooseAndImportExcel(settings, (err, parseRes) => {
+      if (err) {
+        wx.showModal({
+          title: '导入遇到问题',
+          content: err.message || '解析失败，请检查文件格式',
+          showCancel: false,
+          confirmColor: '#1677ff'
+        });
+        return;
       }
-    });
-  },
 
-  generateDemoRecords() {
-    const settings = attendance.getSettings();
-    const records = attendance.getAllRecords();
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = now.getMonth() + 1;
-    const pad = n => (n < 10 ? '0' + n : '' + n);
+      // 直接合并入库，不弹对话框打断！
+      const currentRecords = attendance.getAllRecords();
+      Object.assign(currentRecords, parseRes.records);
+      attendance.saveAllRecords(currentRecords);
 
-    let satDay = null;
-    let sunDay = null;
-    const totalDays = new Date(year, month, 0).getDate();
-    for (let d = 1; d <= totalDays; d++) {
-      const dayOfWeek = new Date(year, month - 1, d).getDay();
-      if (dayOfWeek === 6 && !satDay) satDay = d;
-      if (dayOfWeek === 0 && !sunDay) sunDay = d;
-      if (satDay && sunDay) break;
-    }
-
-    const weekdays = [];
-    for (let d = 1; d <= totalDays; d++) {
-      const dayOfWeek = new Date(year, month - 1, d).getDay();
-      if (dayOfWeek >= 1 && dayOfWeek <= 5) {
-        weekdays.push(d);
-        if (weekdays.length >= 5) break;
-      }
-    }
-
-    const demoSamples = [];
-
-    if (weekdays[0]) demoSamples.push({ day: weekdays[0], inTime: '08:00', outTime: '17:30', remark: '工作日早到，17:30满7.5h正常下班' });
-    if (weekdays[1]) demoSamples.push({ day: weekdays[1], inTime: '08:15', outTime: '20:15', remark: '工作日弹性，17:45下班休息1h至18:45，加班1.5h' });
-    if (weekdays[2]) demoSamples.push({ day: weekdays[2], inTime: '08:30', outTime: '18:00', remark: '工作日基准打卡，准时下班' });
-    if (weekdays[3]) demoSamples.push({ day: weekdays[3], inTime: '08:30', outTime: '20:30', remark: '工作日18:00下班休息至19:00，加班1.5h' });
-    if (weekdays[4]) demoSamples.push({ day: weekdays[4], inTime: '09:00', outTime: '18:30', remark: '工作日弹性最晚，18:30满工时下班' });
-
-    if (satDay) demoSamples.push({ day: satDay, inTime: '09:00', outTime: '18:00', remark: '周六加班9小时 (中午休息时间计入加班)' });
-    if (sunDay) demoSamples.push({ day: sunDay, inTime: '08:30', outTime: '20:30', remark: '周日加班12小时 (中午与晚上休息均计入加班)' });
-
-    demoSamples.forEach(item => {
-      const dateStr = `${year}-${pad(month)}-${pad(item.day)}`;
-      const rec = {
-        date: dateStr,
-        signInTime: item.inTime,
-        signOutTime: item.outTime,
-        remark: item.remark
-      };
-      records[dateStr] = attendance.evaluateRecord(rec, settings);
-    });
-
-    attendance.saveAllRecords(records);
-
-    wx.showModal({
-      title: '导入成功 🎉',
-      content: `已成功生成 ${demoSamples.length} 条考勤示例（包含工作日休息1h起算加班、周六日全额计加班样例），快去「明细」或「打卡」查看吧！`,
-      showCancel: false,
-      confirmText: '去查看',
-      confirmColor: '#1677ff',
-      success: () => {
-        wx.switchTab({
-          url: '/pages/records/records'
+      // 记录导入的目标年月，通知明细页面自动更新日历
+      if (parseRes.minDate) {
+        const parts = parseRes.minDate.split('-');
+        wx.setStorageSync('records_view_target_month', {
+          year: parseInt(parts[0], 10),
+          month: parseInt(parts[1], 10),
+          date: parseRes.minDate,
+          count: parseRes.count
         });
       }
+
+      // 直接切换到明细页面，日历直接刷新出来！
+      wx.switchTab({
+        url: '/pages/records/records'
+      });
     });
   },
 

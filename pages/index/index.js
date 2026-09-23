@@ -402,8 +402,8 @@ Page({
           // 成功长震动反馈
           wx.vibrateLong();
 
-          // 弹窗确认更新下班时间
-          this.confirmUpdateSignOut();
+          // 长按满5秒直接更新下班打卡，无需点击任何弹窗对话框
+          this.executeDirectUpdateSignOut();
         }
       }, 50);
     }, 350);
@@ -443,26 +443,26 @@ Page({
   },
 
   /**
-   * 长按满 5 秒后唤起确认更新
+   * 长按满 5 秒直接执行更新，无任何阻断对话框或提示浮条
    */
-  confirmUpdateSignOut() {
+  executeDirectUpdateSignOut() {
     const now = new Date();
     const timeStr = attendance.getCurrentTimeStr(now);
     const today = attendance.getTodayDateStr(now);
-    const { record } = this.data;
+    const { record, settings } = this.data;
 
-    wx.showModal({
-      title: '已长按解锁 🔓',
-      content: `原下班时间为 ${record.signOutTime}，确定要将下班时间更新为当前时间 ${timeStr} 吗？`,
-      confirmText: '确认更新',
-      cancelText: '取消',
-      confirmColor: '#1677ff',
-      success: (res) => {
-        if (res.confirm) {
-          this.doSavePunchOut(today, timeStr);
-        }
-      }
+    const newRecord = Object.assign({}, record, {
+      date: today,
+      signOutTime: timeStr,
+      signOutTimestamp: Date.now()
     });
+
+    const evaluated = attendance.saveDailyRecord(newRecord, settings);
+
+    this.setData({
+      record: evaluated
+    });
+    this.updateWorkStatus();
   },
 
   doSavePunchOut(today, timeStr) {
