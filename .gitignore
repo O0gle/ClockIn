@@ -1,6 +1,10 @@
 # WeChat DevTools
 project.private.config.json
 
+# 小程序代码上传密钥（泄露后他人可代发版本，绝不入库）
+private*.key
+preview-qrcode.png
+
 # Node & Dependencies
 node_modules/
 miniprogram_npm/
@@ -14,3 +18,4 @@ Thumbs.db
 .vscode/
 .idea/
 .claude/
+.workbuddy/

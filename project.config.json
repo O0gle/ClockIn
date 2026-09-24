@@ -4,7 +4,32 @@
   "compileType": "miniprogram",
   "libVersion": "trial",
   "packOptions": {
-    "ignore": [],
+    "ignore": [
+      {
+        "type": "file",
+        "value": "README.md"
+      },
+      {
+        "type": "file",
+        "value": ".gitignore"
+      },
+      {
+        "type": "folder",
+        "value": ".git"
+      },
+      {
+        "type": "folder",
+        "value": "scripts"
+      },
+      {
+        "type": "folder",
+        "value": "cloudfunctions"
+      },
+      {
+        "type": "folder",
+        "value": ".workbuddy"
+      }
+    ],
     "include": []
   },
   "setting": {
@@ -36,6 +61,6 @@
     "tabIndent": "auto",
     "tabSize": 2
   },
-  "appid": "wxed15f776a2df1f98",
+  "appid": "wx30a0f98557fef6b2",
   "simulatorPluginLibVersion": {}
 }

@@ -23,6 +23,7 @@ Page({
 
     // 补卡/编辑弹窗
     showEditModal: false,
+    modalTitle: '考勤补卡 / 编辑记录',
     editDate: '',
     editSignInTime: '',
     editSignOutTime: '',
@@ -247,17 +248,48 @@ Page({
   },
 
   /**
-   * 打开补卡/编辑某日弹窗
+   * 列表视图顶部点击「+ 补充打卡」：主动为指定月份或指定日期补录
+   */
+  openNewRecordModal() {
+    const { currentYear, currentMonth } = this.data;
+    const now = new Date();
+    const today = attendance.getTodayDateStr(now);
+    const pad = n => (n < 10 ? '0' + n : '' + n);
+
+    // 默认选择日期：如果当前查看的就是本月，优先默认今天；如果是历史月，默认该月1号
+    let defaultDate = today;
+    const monthPrefix = `${currentYear}-${pad(currentMonth)}`;
+    if (!defaultDate.startsWith(monthPrefix)) {
+      defaultDate = `${monthPrefix}-01`;
+    }
+
+    const settings = attendance.getSettings();
+    const existing = attendance.getRecordByDate(defaultDate, settings);
+
+    this.setData({
+      showEditModal: true,
+      modalTitle: '补充考勤打卡',
+      editDate: defaultDate,
+      editSignInTime: existing && existing.signInTime ? existing.signInTime : '08:30',
+      editSignOutTime: existing && existing.signOutTime ? existing.signOutTime : '18:00',
+      editRemark: existing && existing.remark ? existing.remark : ''
+    });
+  },
+
+  /**
+   * 打开补卡/编辑某日弹窗 (支持从行点击编辑或单日详情卡片点击)
    */
   openEditModal(e) {
-    const dateStr = e.currentTarget.dataset.date || this.data.selectedDateStr;
+    const dateStr = (e && e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.date) || this.data.selectedDateStr;
     if (!dateStr) return;
 
     const settings = attendance.getSettings();
     const record = attendance.getRecordByDate(dateStr, settings);
+    const hasData = !!(record && (record.signInTime || record.signOutTime));
 
     this.setData({
       showEditModal: true,
+      modalTitle: hasData ? '编辑考勤记录' : '补充考勤打卡',
       editDate: dateStr,
       editSignInTime: record && record.signInTime ? record.signInTime : '08:30',
       editSignOutTime: record && record.signOutTime ? record.signOutTime : '18:00',
@@ -265,10 +297,38 @@ Page({
     });
   },
 
+  /**
+   * 在弹窗中切换/修改日期：自动检测该日期是否已有打卡记录并联动回填
+   */
+  onEditDateChange(e) {
+    const newDate = e.detail.value;
+    if (!newDate) return;
+
+    const settings = attendance.getSettings();
+    const record = attendance.getRecordByDate(newDate, settings);
+    const hasData = !!(record && (record.signInTime || record.signOutTime));
+
+    this.setData({
+      editDate: newDate,
+      modalTitle: hasData ? '编辑考勤记录' : '补充考勤打卡',
+      editSignInTime: record && record.signInTime ? record.signInTime : (this.data.editSignInTime || '08:30'),
+      editSignOutTime: record && record.signOutTime ? record.signOutTime : (this.data.editSignOutTime || '18:00'),
+      editRemark: record && record.remark ? record.remark : ''
+    });
+
+    if (hasData) {
+      wx.showToast({ title: '已读取该日现有打卡', icon: 'none' });
+    }
+  },
+
   closeEditModal() {
     this.setData({
       showEditModal: false
     });
+  },
+
+  preventBubble() {
+    // 阻止弹窗事件冒泡
   },
 
   onEditSignInChange(e) {
@@ -303,15 +363,24 @@ Page({
 
     attendance.saveDailyRecord(record, settings);
 
+    // 如果补录的日期跨月，自动将日历对齐切换到该月！
+    const parts = editDate.split('-');
+    const targetYear = parseInt(parts[0], 10);
+    const targetMonth = parseInt(parts[1], 10);
+    const pad = n => (n < 10 ? '0' + n : '' + n);
+
     this.setData({
-      showEditModal: false
-    });
-
-    this.loadMonthData();
-
-    wx.showToast({
-      title: '保存成功',
-      icon: 'success'
+      showEditModal: false,
+      currentYear: targetYear,
+      currentMonth: targetMonth,
+      selectedDateStr: editDate,
+      monthPickerValue: `${targetYear}-${pad(targetMonth)}`
+    }, () => {
+      this.loadMonthData();
+      wx.showToast({
+        title: '保存成功',
+        icon: 'success'
+      });
     });
   },
 
