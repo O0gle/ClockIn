@@ -90,15 +90,16 @@ Page({
    */
   loadMonthData() {
     const { currentYear, currentMonth, selectedDateStr } = this.data;
+    // 一次性读取规则与记录缓存，避免重复跨进程读取
     const settings = attendance.getSettings();
-    const statistics = attendance.getMonthStatistics(currentYear, currentMonth, settings);
     const recordsMap = attendance.getAllRecords();
+    const statistics = attendance.getMonthStatistics(currentYear, currentMonth, settings, recordsMap);
 
-    // 构建日历网格
+    // 基于内存记录构建日历网格
     const calendarDays = this.buildCalendarDays(currentYear, currentMonth, recordsMap, settings);
 
-    // 选中的单日记录
-    const dayRecord = attendance.getRecordByDate(selectedDateStr, settings);
+    // 选中的单日记录直接从内存获取
+    const dayRecord = attendance.getRecordByDate(selectedDateStr, settings, recordsMap);
 
     this.setData({
       statistics,

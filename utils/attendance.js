@@ -539,9 +539,9 @@ function saveAllRecords(records) {
 /**
  * 根据日期获取打卡记录
  */
-function getRecordByDate(dateStr, customSettings) {
+function getRecordByDate(dateStr, customSettings, cachedRecords) {
   const settings = customSettings || getSettings();
-  const records = getAllRecords();
+  const records = cachedRecords || getAllRecords();
   const raw = records[dateStr];
   if (!raw) {
     return evaluateRecord({ date: dateStr }, settings);
@@ -577,9 +577,9 @@ function deleteDailyRecord(dateStr) {
 /**
  * 获取某月份的考勤统计
  */
-function getMonthStatistics(year, month, customSettings) {
+function getMonthStatistics(year, month, customSettings, cachedRecords) {
   const settings = customSettings || getSettings();
-  const records = getAllRecords();
+  const records = cachedRecords || getAllRecords();
   const pad = n => (n < 10 ? '0' + n : '' + n);
   const prefix = `${year}-${pad(month)}`;
 
