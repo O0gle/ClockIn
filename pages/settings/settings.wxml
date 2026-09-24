@@ -4,7 +4,6 @@
   <view class="rules-summary-card card">
     <view class="summary-top">
       <text class="summary-badge">当前生效规则</text>
-      <text class="reset-link" bindtap="resetToDefault">恢复默认</text>
     </view>
     <view class="summary-grid">
       <view class="sum-item">
