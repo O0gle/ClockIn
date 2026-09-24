@@ -364,55 +364,87 @@ function parseFileContent(contentStr, fileName, settings) {
 }
 
 /**
+ * 微信隐私保护：选择聊天文件属于隐私接口，需先取得用户授权
+ * 若后台未配置隐私保护指引，则 needAuthorization 为 false，直接放行
+ */
+function withPrivacyAuth(run) {
+  if (typeof wx === 'undefined' || typeof wx.getPrivacySetting !== 'function') {
+    run();
+    return;
+  }
+  wx.getPrivacySetting({
+    success: (res) => {
+      if (!res || !res.needAuthorization || typeof wx.requirePrivacyAuthorize !== 'function') {
+        run();
+        return;
+      }
+      wx.requirePrivacyAuthorize({
+        success: () => run(),
+        fail: () => {
+          wx.showModal({
+            title: '需要同意隐私保护指引',
+            content: '导入外部考勤表需要读取你从聊天中选择的文件，请先同意《小程序用户隐私保护指引》后重试。',
+            showCancel: false
+          });
+        }
+      });
+    },
+    fail: () => run()
+  });
+}
+
+/**
  * 调起微信聊天文件选择器导入外部表格
  */
 function chooseAndImportExcel(settings, callback) {
   if (typeof wx === 'undefined') return;
 
-  wx.chooseMessageFile({
-    count: 1,
-    type: 'file',
-    extension: ['xls', 'xlsx', 'csv', 'txt'],
-    success: (res) => {
-      const file = res.tempFiles && res.tempFiles[0];
-      if (!file) {
-        if (callback) callback(new Error('未选择任何文件'));
-        return;
-      }
-
-      wx.showLoading({ title: '正在读取表格...', mask: true });
-
-      const fs = wx.getFileSystemManager();
-
-      fs.readFile({
-        filePath: file.path,
-        encoding: 'utf8',
-        success: (readRes) => {
-          const content = readRes.data;
-          const parseRes = parseFileContent(content, file.name, settings);
-          wx.hideLoading();
-
-          if (!parseRes.success) {
-            if (callback) callback(new Error(parseRes.message || '表格解析失败'));
-            return;
-          }
-
-          parseRes.fileName = file.name;
-          if (callback) callback(null, parseRes);
-        },
-        fail: (readErr) => {
-          wx.hideLoading();
-          console.error('readFile fail:', readErr);
-          if (callback) callback(new Error('读取本地文件失败：' + (readErr.errMsg || '未知错误')));
+  withPrivacyAuth(() => {
+    wx.chooseMessageFile({
+      count: 1,
+      type: 'file',
+      extension: ['xls', 'xlsx', 'csv', 'txt'],
+      success: (res) => {
+        const file = res.tempFiles && res.tempFiles[0];
+        if (!file) {
+          if (callback) callback(new Error('未选择任何文件'));
+          return;
         }
-      });
-    },
-    fail: (chooseErr) => {
-      if (chooseErr.errMsg && chooseErr.errMsg.includes('cancel')) {
-        return;
+
+        wx.showLoading({ title: '正在读取表格...', mask: true });
+
+        const fs = wx.getFileSystemManager();
+
+        fs.readFile({
+          filePath: file.path,
+          encoding: 'utf8',
+          success: (readRes) => {
+            const content = readRes.data;
+            const parseRes = parseFileContent(content, file.name, settings);
+            wx.hideLoading();
+
+            if (!parseRes.success) {
+              if (callback) callback(new Error(parseRes.message || '表格解析失败'));
+              return;
+            }
+
+            parseRes.fileName = file.name;
+            if (callback) callback(null, parseRes);
+          },
+          fail: (readErr) => {
+            wx.hideLoading();
+            console.error('readFile fail:', readErr);
+            if (callback) callback(new Error('读取本地文件失败：' + (readErr.errMsg || '未知错误')));
+          }
+        });
+      },
+      fail: (chooseErr) => {
+        if (chooseErr.errMsg && chooseErr.errMsg.includes('cancel')) {
+          return;
+        }
+        if (callback) callback(new Error('选择文件失败：' + (chooseErr.errMsg || '')));
       }
-      if (callback) callback(new Error('选择文件失败：' + (chooseErr.errMsg || '')));
-    }
+    });
   });
 }
 

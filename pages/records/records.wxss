@@ -91,6 +91,10 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
+  padding: 10rpx 4rpx;
+  border-radius: 16rpx;
+  box-sizing: border-box;
 }
 
 .stat-num {
@@ -117,8 +121,6 @@
 
 .stat-overtime {
   background: #fff7ed;
-  border-radius: 16rpx;
-  padding: 12rpx 8rpx;
 }
 
 .ot-color {
@@ -367,6 +369,10 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
+  padding: 8rpx 4rpx;
+  border-radius: 12rpx;
+  box-sizing: border-box;
 }
 
 .detail-label {
@@ -390,8 +396,6 @@
 
 .detail-ot {
   background: #fff7ed;
-  border-radius: 12rpx;
-  padding: 4rpx;
 }
 
 .detail-empty {
@@ -705,6 +709,34 @@
   font-size: 30rpx;
   font-weight: 700;
   color: #0f172a;
+}
+
+.label-with-action {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12rpx;
+}
+
+.toggle-pwd-link {
+  font-size: 22rpx;
+  color: #1677ff;
+  font-weight: 500;
+}
+
+.date-picker-box {
+  background: #eff6ff !important;
+  border-color: #bfdbfe !important;
+}
+
+.date-picker-left {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.date-icon {
+  font-size: 30rpx;
 }
 
 .picker-input {

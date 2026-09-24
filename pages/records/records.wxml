@@ -153,7 +153,7 @@
   <view class="list-section" wx:if="{{viewMode === 'list'}}">
     <view class="list-header">
       <text class="list-title">考勤明细列表 (共 {{statistics.records.length}} 条)</text>
-      <view class="add-record-btn" hover-class="hover-effect" data-date="{{selectedDateStr}}" bindtap="openEditModal">
+      <view class="add-record-btn" hover-class="hover-effect" bindtap="openNewRecordModal">
         <text>+ 补充打卡</text>
       </view>
     </view>
@@ -219,16 +219,28 @@
 
 <!-- 补卡/编辑弹窗 -->
 <view class="modal-mask" wx:if="{{showEditModal}}" bindtap="closeEditModal">
-  <view class="modal-dialog" catchtap="true">
+  <view class="modal-dialog" catchtap="preventBubble">
     <view class="modal-header">
-      <text class="modal-title">考勤补卡 / 编辑记录</text>
+      <text class="modal-title">{{modalTitle || '补卡 / 编辑考勤'}}</text>
       <text class="modal-close" bindtap="closeEditModal">✕</text>
     </view>
 
     <view class="modal-body">
+      <!-- 1. 打卡日期：支持直接点击选择任意日期 -->
       <view class="form-item">
-        <text class="form-label">打卡日期</text>
-        <text class="form-static-text">{{editDate}}</text>
+        <view class="label-with-action">
+          <text class="form-label">打卡日期 *</text>
+          <text class="toggle-pwd-link">可点击下方更换日期</text>
+        </view>
+        <picker mode="date" value="{{editDate}}" bindchange="onEditDateChange">
+          <view class="picker-input date-picker-box">
+            <view class="date-picker-left">
+              <text class="date-icon">📅</text>
+              <text class="picker-val">{{editDate || '请选择打卡日期'}}</text>
+            </view>
+            <text class="picker-arrow">点击更换 ▼</text>
+          </view>
+        </picker>
       </view>
 
       <view class="form-item">
