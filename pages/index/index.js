@@ -171,7 +171,11 @@ Page({
     if (!record.signInTime && !record.signOutTime) {
       // 未打卡
       workState = 'unpunched';
-      workStateText = isWeekend ? '周末尚未打卡 (全天计加班)' : '今日尚未打卡';
+      if (attendance.isRestrictedPunchTime(now)) {
+        workStateText = '凌晨休息时段 (07:00开放打卡)';
+      } else {
+        workStateText = isWeekend ? '周末尚未打卡 (全天计加班)' : '今日尚未打卡';
+      }
     } else if (record.signInTime && !record.signOutTime) {
       // 工作中
       const inMins = attendance.timeStrToMinutes(record.signInTime);
@@ -241,6 +245,18 @@ Page({
    * 上班打卡操作
    */
   handlePunchIn() {
+    if (attendance.isRestrictedPunchTime()) {
+      wx.vibrateShort({ type: 'medium' });
+      wx.showModal({
+        title: '暂未开放打卡 🌙',
+        content: '系统限制：凌晨 00:00 至 06:59 之间不可打卡，请在 07:00 之后再来打卡。',
+        showCancel: false,
+        confirmText: '我知道了',
+        confirmColor: '#1677ff'
+      });
+      return;
+    }
+
     const now = new Date();
     const timeStr = attendance.getCurrentTimeStr(now);
     const today = attendance.getTodayDateStr(now);
@@ -302,6 +318,18 @@ Page({
    * 下班打卡操作
    */
   handlePunchOut() {
+    if (attendance.isRestrictedPunchTime()) {
+      wx.vibrateShort({ type: 'medium' });
+      wx.showModal({
+        title: '暂未开放打卡 🌙',
+        content: '系统限制：凌晨 00:00 至 06:59 之间不可打卡，请在 07:00 之后再来打卡。',
+        showCancel: false,
+        confirmText: '我知道了',
+        confirmColor: '#1677ff'
+      });
+      return;
+    }
+
     const now = new Date();
     const timeStr = attendance.getCurrentTimeStr(now);
     const today = attendance.getTodayDateStr(now);
@@ -357,6 +385,18 @@ Page({
    * 已打下班卡时：按住判断意图 (长按5秒防误触机制)
    */
   handleDoneTouchStart() {
+    if (attendance.isRestrictedPunchTime()) {
+      wx.vibrateShort({ type: 'medium' });
+      wx.showModal({
+        title: '暂未开放打卡 🌙',
+        content: '系统限制：凌晨 00:00 至 06:59 之间不可打卡，请在 07:00 之后再来打卡。',
+        showCancel: false,
+        confirmText: '我知道了',
+        confirmColor: '#1677ff'
+      });
+      return;
+    }
+
     this.pressStartTime = Date.now();
     this.hasTriggeredLongPress = false;
     this.clearPressTimer();
@@ -539,6 +579,15 @@ Page({
       wx.showToast({
         title: '请至少填写上班或下班时间',
         icon: 'none'
+      });
+      return;
+    }
+
+    if ((editSignInTime && attendance.isRestrictedPunchTime(editSignInTime)) || (editSignOutTime && attendance.isRestrictedPunchTime(editSignOutTime))) {
+      wx.showToast({
+        title: '打卡时间不可设置在凌晨00:00~06:59',
+        icon: 'none',
+        duration: 2500
       });
       return;
     }

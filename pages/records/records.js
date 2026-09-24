@@ -353,6 +353,15 @@ Page({
       return;
     }
 
+    if ((editSignInTime && attendance.isRestrictedPunchTime(editSignInTime)) || (editSignOutTime && attendance.isRestrictedPunchTime(editSignOutTime))) {
+      wx.showToast({
+        title: '打卡时间不可设置在凌晨00:00~06:59',
+        icon: 'none',
+        duration: 2500
+      });
+      return;
+    }
+
     const settings = attendance.getSettings();
     const record = {
       date: editDate,

@@ -177,28 +177,6 @@ Page({
   },
 
   /**
-   * 恢复默认规则
-   */
-  resetToDefault() {
-    wx.showModal({
-      title: '恢复默认规则',
-      content: '确定要恢复为预设规则吗？\n（08:30±30m上班，18:00±30m下班，11:40~13:40午休；工作日下班休息1h起算加班，周末休息全计入加班）',
-      confirmColor: '#1677ff',
-      success: (res) => {
-        if (res.confirm) {
-          const defaults = Object.assign({}, attendance.DEFAULT_SETTINGS);
-          attendance.saveSettings(defaults);
-          this.loadSettings();
-          wx.showToast({
-            title: '已恢复默认',
-            icon: 'success'
-          });
-        }
-      }
-    });
-  },
-
-  /**
    * 设置页：导出全部所有月份的考勤报表 (全量导出所有历史内容)
    */
   exportCsvReport() {

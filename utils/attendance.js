@@ -34,6 +34,31 @@ function isWeekendDate(dateStr) {
 }
 
 /**
+ * 判断指定时间是否在凌晨禁打卡时段 (00:00 ~ 06:59)
+ * @param {Date|string} dateOrTime - Date 对象或 "HH:mm" 字符串
+ * @returns {boolean} true: 处于受限时段; false: 正常打卡时段
+ */
+function isRestrictedPunchTime(dateOrTime) {
+  let h = 0;
+  let m = 0;
+  if (dateOrTime instanceof Date) {
+    h = dateOrTime.getHours();
+    m = dateOrTime.getMinutes();
+  } else if (typeof dateOrTime === 'string' && dateOrTime.includes(':')) {
+    const [hStr, mStr] = dateOrTime.split(':');
+    h = parseInt(hStr, 10) || 0;
+    m = parseInt(mStr, 10) || 0;
+  } else {
+    const now = new Date();
+    h = now.getHours();
+    m = now.getMinutes();
+  }
+  const totalMins = h * 60 + m;
+  // 00:00 (0) 至 06:59 (419 分钟) 不可打卡
+  return totalMins >= 0 && totalMins < 420;
+}
+
+/**
  * 时间字符串转当天总分钟数 (如 "08:30" => 510)
  */
 function timeStrToMinutes(str) {
@@ -636,6 +661,7 @@ module.exports = {
   calculateOvertimeDuration,
   getWeekdayOvertimeStartTime,
   evaluateRecord,
+  isRestrictedPunchTime,
   getTodayDateStr,
   getCurrentTimeStr,
   getAllRecords,
