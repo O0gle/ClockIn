@@ -58,17 +58,18 @@ Page({
     let restIndex = restOptions.indexOf(settings.weekdayRestMinutes || 60);
     if (restIndex === -1) restIndex = 2;
 
-    this.setData({
+    const summary = this.computeSummary(settings);
+
+    // 单次合并 setData，彻底杜绝连续重绘造成的卡顿
+    this.setData(Object.assign({
       settings,
       startFlexIndex,
       endFlexIndex,
       restIndex
-    });
-
-    this.recalcSummary(settings);
+    }, summary));
   },
 
-  recalcSummary(settings) {
+  computeSummary(settings) {
     const baseStartMins = attendance.timeStrToMinutes(settings.baseStartTime);
     const startEarly = attendance.minutesToTimeStr(baseStartMins - settings.startFlexMinutes);
     const startLate = attendance.minutesToTimeStr(baseStartMins + settings.startFlexMinutes);
@@ -92,14 +93,14 @@ Page({
     const weekdayOvertimeRuleText = `下班后休息 ${restMins} 分钟起计`;
     const weekendOvertimeRuleText = `全天计加班，中午及晚上休息均全额计入`;
 
-    this.setData({
+    return {
       flexStartRangeText,
       flexEndRangeText,
       lunchDurationText,
       standardWorkText,
       weekdayOvertimeRuleText,
       weekendOvertimeRuleText
-    });
+    };
   },
 
   // 1. 修改上班基准时间
@@ -166,8 +167,8 @@ Page({
     settings.standardWorkMinutes = Math.max(0, (baseEndMins - baseStartMins) - lunchBreakMins);
 
     attendance.saveSettings(settings);
-    this.setData({ settings });
-    this.recalcSummary(settings);
+    const summary = this.computeSummary(settings);
+    this.setData(Object.assign({ settings }, summary));
 
     wx.showToast({
       title: '设置已保存',

@@ -1,6 +1,5 @@
 {
   "miniprogramRoot": "./",
-  "cloudfunctionRoot": "cloudfunctions/",
   "compileType": "miniprogram",
   "libVersion": "trial",
   "packOptions": {
@@ -20,10 +19,6 @@
       {
         "type": "folder",
         "value": "scripts"
-      },
-      {
-        "type": "folder",
-        "value": "cloudfunctions"
       },
       {
         "type": "folder",
