@@ -31,6 +31,11 @@ Page({
     editSignOutTime: '',
     editRemark: '',
 
+    // 上班打卡长按3秒相关状态
+    isInPressing: false,
+    inPressPercent: 0,
+    inPressRemaining: 3,
+
     // 长按5秒更新下班打卡状态
     isPressing: false,
     pressPercent: 0,
@@ -41,10 +46,16 @@ Page({
   },
 
   timer: null,
+  // 下班长按5秒定时器
   pressTimer: null,
   longPressDetectTimer: null,
   pressStartTime: 0,
   hasTriggeredLongPress: false,
+  // 上班长按3秒定时器
+  inPressTimer: null,
+  inLongPressDetectTimer: null,
+  inPressStartTime: 0,
+  hasTriggeredInLongPress: false,
 
   onLoad() {
     this.initPage();
@@ -58,11 +69,13 @@ Page({
   onHide() {
     this.stopClock();
     this.clearPressTimer();
+    this.clearInPressTimer();
   },
 
   onUnload() {
     this.stopClock();
     this.clearPressTimer();
+    this.clearInPressTimer();
   },
 
   onPullDownRefresh() {
@@ -242,9 +255,9 @@ Page({
   },
 
   /**
-   * 上班打卡操作
+   * 上班打卡：长按 3 秒判定与倒计时 (长按3秒生效，防误触)
    */
-  handlePunchIn() {
+  handleInTouchStart() {
     if (attendance.isRestrictedPunchTime()) {
       wx.vibrateShort({ type: 'medium' });
       wx.showModal({
@@ -257,28 +270,83 @@ Page({
       return;
     }
 
-    const now = new Date();
-    const timeStr = attendance.getCurrentTimeStr(now);
-    const today = attendance.getTodayDateStr(now);
-    const { record } = this.data;
+    this.inPressStartTime = Date.now();
+    this.hasTriggeredInLongPress = false;
+    this.clearInPressTimer();
 
-    wx.vibrateShort({ type: 'medium' });
-
-    if (record && record.signInTime) {
-      wx.showModal({
-        title: '更新上班打卡时间？',
-        content: `原打卡时间为 ${record.signInTime}，确定要更新为当前时间 ${timeStr} 吗？`,
-        confirmColor: '#1677ff',
-        success: (res) => {
-          if (res.confirm) {
-            this.doSavePunchIn(today, timeStr);
-          }
-        }
+    // 300 毫秒按压意图识别缓冲区：若 300ms 内抬起则判定为误触/点按，不进入长按
+    this.inLongPressDetectTimer = setTimeout(() => {
+      this.setData({
+        isInPressing: true,
+        inPressPercent: 0,
+        inPressRemaining: 3
       });
-      return;
-    }
 
-    this.doSavePunchIn(today, timeStr);
+      wx.vibrateShort({ type: 'medium' });
+
+      const totalMs = 3000; // 3 秒
+      this.inPressTimer = setInterval(() => {
+        const elapsed = Date.now() - this.inPressStartTime;
+        const percent = Math.min(100, Math.floor((elapsed / totalMs) * 100));
+        const remaining = Math.max(0, Math.ceil((totalMs - elapsed) / 1000));
+
+        if (remaining !== this.data.inPressRemaining && remaining > 0) {
+          wx.vibrateShort({ type: 'light' });
+        }
+
+        this.setData({
+          inPressPercent: percent,
+          inPressRemaining: remaining
+        });
+
+        if (elapsed >= totalMs) {
+          // 满 3 秒，成功打卡！
+          this.clearInPressTimer();
+          this.hasTriggeredInLongPress = true;
+
+          this.setData({
+            isInPressing: false,
+            inPressPercent: 100,
+            inPressRemaining: 0
+          });
+
+          // 成功长震动反馈
+          wx.vibrateLong();
+
+          // 直接打卡生效，彻底删除弹出的对话框！
+          const now = new Date();
+          const timeStr = attendance.getCurrentTimeStr(now);
+          const today = attendance.getTodayDateStr(now);
+          this.doSavePunchIn(today, timeStr);
+        }
+      }, 50);
+    }, 300);
+  },
+
+  handleInTouchEnd() {
+    this.clearInPressTimer();
+    if (this.data.isInPressing) {
+      this.setData({
+        isInPressing: false,
+        inPressPercent: 0,
+        inPressRemaining: 3
+      });
+    }
+  },
+
+  handleInTap() {
+    // 短按静默拦截，防误触，不作任何反应
+  },
+
+  clearInPressTimer() {
+    if (this.inLongPressDetectTimer) {
+      clearTimeout(this.inLongPressDetectTimer);
+      this.inLongPressDetectTimer = null;
+    }
+    if (this.inPressTimer) {
+      clearInterval(this.inPressTimer);
+      this.inPressTimer = null;
+    }
   },
 
   doSavePunchIn(today, timeStr) {
@@ -296,22 +364,7 @@ Page({
     });
     this.updateWorkStatus();
 
-    let tip = `打卡成功：${timeStr}`;
-    if (isWeekend) {
-      tip += `\n🌟 今日是周末：全天出勤计加班，中午与晚上休息均计入加班时长！`;
-    } else {
-      if (evaluated.expectedSignOutTime) {
-        tip += `\n预计下班：${evaluated.expectedSignOutTime}\n休息1小时后 (即${evaluated.overtimeStartTime}) 开始计入加班`;
-      }
-    }
-
-    wx.showModal({
-      title: isWeekend ? '周末加班打卡成功 👏' : '上班打卡成功 🎉',
-      content: tip,
-      showCancel: false,
-      confirmText: '我知道了',
-      confirmColor: '#1677ff'
-    });
+    // 生效后弹出的对话框已彻底删除！0 弹窗打扰直接生效！
   },
 
   /**

@@ -23,13 +23,21 @@
   <!-- 2. 打卡主动作按钮区 -->
   <view class="action-card card">
     <view class="button-wrapper">
-      <!-- 状态A: 尚未打上班卡 -->
-      <view wx:if="{{!record.signInTime}}" class="punch-circle {{isWeekend ? 'punch-weekend' : 'punch-in'}}" hover-class="punch-hover" bindtap="handlePunchIn">
-        <view class="punch-ripple"></view>
+      <!-- 状态A: 尚未打上班卡 (长按3秒生效) -->
+      <view wx:if="{{!record.signInTime}}"
+            class="punch-circle {{isWeekend ? 'punch-weekend' : 'punch-in'}} {{isInPressing ? 'punch-pressing' : ''}}"
+            bindtap="handleInTap"
+            bindtouchstart="handleInTouchStart"
+            bindtouchend="handleInTouchEnd"
+            bindtouchcancel="handleInTouchEnd">
+        <!-- 长按水波纹上升进度遮罩 -->
+        <view class="press-progress-wave" wx:if="{{isInPressing}}" style="height: {{inPressPercent}}%;"></view>
         <view class="punch-inner">
-          <text class="punch-title">{{isWeekend ? '周末加班打卡' : '上班打卡'}}</text>
+          <text class="punch-title" wx:if="{{!isInPressing}}">{{isWeekend ? '长按3秒打卡' : '长按3秒上班'}}</text>
+          <text class="punch-title text-pressing" wx:else>还需按住 {{inPressRemaining}}s</text>
           <text class="punch-time-hint">{{currentTimeText}}</text>
-          <text class="punch-rule-sub">{{isWeekend ? '休息时间全额计入加班' : '弹性区间 08:00 ~ 09:00'}}</text>
+          <text class="punch-rule-sub" wx:if="{{!isInPressing}}">{{isWeekend ? '周末出勤全计加班' : '弹性区间 08:00 ~ 09:00'}}</text>
+          <text class="punch-rule-sub text-pressing" wx:else>长按中... 满3秒打卡</text>
         </view>
       </view>
 
