@@ -2,9 +2,9 @@
   "pages": [
     "pages/index/index",
     "pages/records/records",
-    "pages/settings/settings",
-    "pages/logs/logs"
+    "pages/settings/settings"
   ],
+  "lazyCodeLoading": "requiredComponents",
   "window": {
     "navigationBarTextStyle": "black",
     "navigationBarTitleText": "弹性打卡助手",
