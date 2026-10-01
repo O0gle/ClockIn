@@ -28,8 +28,69 @@ const privateKeyPath =
     (p) => fs.existsSync(p)
   ) ||
   path.join(projectRoot, `private.${appid}.key`);
-const version = process.env.MP_VERSION || '1.0.0';
-const desc = process.env.MP_DESC || '弹性打卡助手 自用版';
+
+// 版本号自增处理：末位版本号递增 1
+function bumpPatchVersion(ver) {
+  const parts = String(ver).trim().split('.');
+  if (parts.length > 0) {
+    const last = parseInt(parts[parts.length - 1], 10);
+    if (!isNaN(last)) {
+      parts[parts.length - 1] = String(last + 1);
+      return parts.join('.');
+    }
+  }
+  return ver + '.1';
+}
+
+const packageJsonPath = path.join(projectRoot, 'package.json');
+const versionJsPath = path.join(projectRoot, 'utils', 'version.js');
+
+// 1. 读取当前版本号（优先 package.json，其次 utils/version.js，缺省 1.0.5）
+let currentVersion = '1.0.5';
+if (fs.existsSync(packageJsonPath)) {
+  try {
+    const pkg = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+    if (pkg.version) currentVersion = pkg.version;
+  } catch (e) {}
+} else if (fs.existsSync(versionJsPath)) {
+  try {
+    const vModule = require(versionJsPath);
+    if (vModule.version) currentVersion = vModule.version;
+  } catch (e) {}
+}
+
+// 2. 确定本次上传版本号：若环境变量显式指定 MP_VERSION 则采用，否则最后一位自动递增 1
+const version = process.env.MP_VERSION || bumpPatchVersion(currentVersion);
+
+if (!process.env.MP_VERSION) {
+  console.log(`[版本自增] 上一个版本: ${currentVersion} -> 自动递增为本次版本: ${version}`);
+} else {
+  console.log(`[指定版本] 使用环境变量指定版本: ${version}`);
+}
+
+// 3. 同步最新版本回写 package.json
+if (fs.existsSync(packageJsonPath)) {
+  try {
+    const pkg = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+    pkg.version = version;
+    fs.writeFileSync(packageJsonPath, JSON.stringify(pkg, null, 2) + '\n', 'utf8');
+  } catch (e) {
+    console.warn('[警告] 同步 package.json 失败:', e.message);
+  }
+}
+
+// 4. 同步最新版本回写 utils/version.js
+try {
+  fs.writeFileSync(
+    versionJsPath,
+    `// utils/version.js\n// 本文件由 scripts/upload-ci.js 在上传时自动维护更新\nmodule.exports = {\n  version: '${version}'\n};\n`,
+    'utf8'
+  );
+} catch (e) {
+  console.warn('[警告] 同步 utils/version.js 失败:', e.message);
+}
+
+const desc = process.env.MP_DESC || `版本 v${version} 自动发布`;
 
 if (!appid) {
   console.error('[错误] 缺少 AppID，请设置 MP_APPID 或在 project.config.json 中填写 appid');
@@ -53,7 +114,7 @@ const project = new ci.Project({
     'scripts/**/*',
     'cloudfunctions/**/*',
     'README.md',
-    'private.key',
+    'private*.key',
     'preview-qrcode.png',
   ],
 });

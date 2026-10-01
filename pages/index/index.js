@@ -57,12 +57,19 @@ Page({
   inPressStartTime: 0,
   hasTriggeredInLongPress: false,
 
+  _justLoaded: false,
+
   onLoad() {
-    this.initPage();
+    this.refreshData();
+    this._justLoaded = true;
   },
 
   onShow() {
-    this.refreshData();
+    if (this._justLoaded) {
+      this._justLoaded = false;
+    } else {
+      this.refreshData();
+    }
     this.startClock();
   },
 
@@ -87,61 +94,38 @@ Page({
     });
   },
 
-  initPage() {
-    this.refreshData();
-    this.startClock();
-  },
-
   /**
-   * 刷新今日数据和设置
+   * 单次合并刷新今日数据、设置、时钟与工作状态
    */
   refreshData() {
-    const today = attendance.getTodayDateStr();
+    const now = new Date();
+    const today = attendance.getTodayDateStr(now);
     const settings = attendance.getSettings();
     const record = attendance.getRecordByDate(today, settings);
     const isWeekend = attendance.isWeekendDate(today);
 
-    this.setData({
+    const clockData = this.computeClockData(now);
+    const workStatus = this.computeWorkStatus(record, settings, isWeekend, now);
+
+    // 单次合并 setData，彻底杜绝首屏多次重绘造成的卡顿与白屏延迟
+    this.setData(Object.assign({
       todayDate: today,
       isWeekend,
       settings,
       record
-    });
-
-    this.updateWorkStatus();
+    }, clockData, workStatus));
   },
 
   /**
-   * 启动实时时钟
+   * 计算日期与当前时钟文本
    */
-  startClock() {
-    this.stopClock();
-    this.updateClock();
-    this.timer = setInterval(() => {
-      this.updateClock();
-    }, 1000);
-  },
-
-  stopClock() {
-    if (this.timer) {
-      clearInterval(this.timer);
-      this.timer = null;
-    }
-  },
-
-  /**
-   * 更新当前时钟与动态计算状态
-   */
-  updateClock() {
-    const now = new Date();
+  computeClockData(now = new Date()) {
     const hours = now.getHours();
     const minutes = now.getMinutes();
     const seconds = now.getSeconds();
-
     const pad = n => (n < 10 ? '0' + n : '' + n);
     const currentTimeText = `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
 
-    // 日期文本
     const year = now.getFullYear();
     const month = now.getMonth() + 1;
     const date = now.getDate();
@@ -151,27 +135,28 @@ Page({
     const currentDateText = `${year}年${month}月${date}日`;
     const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
 
-    this.setData({
+    return {
       currentTimeText,
       currentDateText,
       weekDayText,
       isWeekend
-    });
-
-    // 每一分钟更新一次在岗倒计时或加班实时显示
-    if (seconds === 0 || !this.data.elapsedWorkText) {
-      this.updateWorkStatus();
-    }
+    };
   },
 
   /**
-   * 根据当前打卡情况与当前时间，计算工作状态
+   * 纯函数：根据打卡情况与时间推算工作状态（不含 setData）
    */
-  updateWorkStatus() {
-    const { record, settings, isWeekend } = this.data;
-    if (!record || !settings) return;
+  computeWorkStatus(record, settings, isWeekend, now = new Date()) {
+    if (!record || !settings) {
+      return {
+        workState: 'unpunched',
+        workStateText: isWeekend ? '周末尚未打卡' : '今日尚未打卡',
+        elapsedWorkText: '',
+        remainingWorkText: '',
+        overtimeActiveText: ''
+      };
+    }
 
-    const now = new Date();
     const nowMins = now.getHours() * 60 + now.getMinutes();
     const nowTimeStr = attendance.getCurrentTimeStr(now);
 
@@ -245,13 +230,71 @@ Page({
       }
     }
 
-    this.setData({
+    return {
       workState,
       workStateText,
       elapsedWorkText,
       remainingWorkText,
       overtimeActiveText
-    });
+    };
+  },
+
+  /**
+   * 启动实时时钟
+   */
+  startClock() {
+    this.stopClock();
+    this.timer = setInterval(() => {
+      this.updateClock();
+    }, 1000);
+  },
+
+  stopClock() {
+    if (this.timer) {
+      clearInterval(this.timer);
+      this.timer = null;
+    }
+  },
+
+  /**
+   * 更新当前时钟与动态计算状态（轻量级，按需触发）
+   */
+  updateClock() {
+    const now = new Date();
+    const hours = now.getHours();
+    const minutes = now.getMinutes();
+    const seconds = now.getSeconds();
+
+    const pad = n => (n < 10 ? '0' + n : '' + n);
+    const currentTimeText = `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+
+    // 每秒仅更新时钟文本，极大降低 JSBridge 跨线程传输消耗
+    const patch = { currentTimeText };
+
+    // 跨分钟整点更新工作状态倒计时与时长推算
+    if (seconds === 0) {
+      // 跨午夜00:00:00时整天变更，全量刷新今日数据与考勤记录
+      if (hours === 0 && minutes === 0) {
+        this.refreshData();
+        return;
+      }
+      const { record, settings, isWeekend } = this.data;
+      if (record && settings) {
+        Object.assign(patch, this.computeWorkStatus(record, settings, isWeekend, now));
+      }
+    }
+
+    this.setData(patch);
+  },
+
+  /**
+   * 单独更新工作状态
+   */
+  updateWorkStatus() {
+    const { record, settings, isWeekend } = this.data;
+    if (!record || !settings) return;
+    const now = new Date();
+    this.setData(this.computeWorkStatus(record, settings, isWeekend, now));
   },
 
   /**
@@ -358,11 +401,12 @@ Page({
     });
 
     const evaluated = attendance.saveDailyRecord(newRecord, settings);
+    const now = new Date();
+    const workStatus = this.computeWorkStatus(evaluated, settings, isWeekend, now);
 
-    this.setData({
+    this.setData(Object.assign({
       record: evaluated
-    });
-    this.updateWorkStatus();
+    }, workStatus));
 
     // 生效后弹出的对话框已彻底删除！0 弹窗打扰直接生效！
   },
@@ -542,7 +586,7 @@ Page({
     const now = new Date();
     const timeStr = attendance.getCurrentTimeStr(now);
     const today = attendance.getTodayDateStr(now);
-    const { record, settings } = this.data;
+    const { record, settings, isWeekend } = this.data;
 
     const newRecord = Object.assign({}, record, {
       date: today,
@@ -551,11 +595,11 @@ Page({
     });
 
     const evaluated = attendance.saveDailyRecord(newRecord, settings);
+    const workStatus = this.computeWorkStatus(evaluated, settings, isWeekend, now);
 
-    this.setData({
+    this.setData(Object.assign({
       record: evaluated
-    });
-    this.updateWorkStatus();
+    }, workStatus));
   },
 
   doSavePunchOut(today, timeStr) {
@@ -567,11 +611,12 @@ Page({
     });
 
     const evaluated = attendance.saveDailyRecord(newRecord, settings);
+    const now = new Date();
+    const workStatus = this.computeWorkStatus(evaluated, settings, isWeekend, now);
 
-    this.setData({
+    this.setData(Object.assign({
       record: evaluated
-    });
-    this.updateWorkStatus();
+    }, workStatus));
 
     let content = `下班打卡成功：${timeStr}`;
     if (isWeekend) {
@@ -653,12 +698,13 @@ Page({
     });
 
     const evaluated = attendance.saveDailyRecord(updated, settings);
+    const now = new Date();
+    const workStatus = this.computeWorkStatus(evaluated, settings, this.data.isWeekend, now);
 
-    this.setData({
+    this.setData(Object.assign({
       record: evaluated,
       showEditModal: false
-    });
-    this.updateWorkStatus();
+    }, workStatus));
 
     wx.showToast({
       title: '修改成功',

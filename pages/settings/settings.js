@@ -2,9 +2,11 @@
 const attendance = require('../../utils/attendance.js');
 const exportUtil = require('../../utils/export.js');
 const importUtil = require('../../utils/import.js');
+const { version: appVersion } = require('../../utils/version.js');
 
 Page({
   data: {
+    appVersion: appVersion || '1.0.5',
     settings: {
       baseStartTime: '08:30',
       startFlexMinutes: 30,
@@ -32,8 +34,10 @@ Page({
     flexEndRangeText: '17:30 ~ 18:30',
     lunchDurationText: '2小时0分钟',
     standardWorkText: '7.5 小时',
+    standardWorkHoursText: '7.5 小时',
     weekdayOvertimeRuleText: '下班休息 60 分钟后起算',
-    weekendOvertimeRuleText: '全天计加班，中午晚上休息全计入'
+    weekendOvertimeRuleText: '全天计加班，中午晚上休息全计入',
+    githubUrl: 'https://github.com/O0gle/ClockIn'
   },
 
   onLoad() {
@@ -87,7 +91,8 @@ Page({
 
     const grossMins = Math.max(0, baseEndMins - baseStartMins);
     const standardWorkMins = Math.max(0, grossMins - lunchBreakMins);
-    const standardWorkText = `${attendance.formatHoursDecimal(standardWorkMins)} 小时 (${attendance.formatDuration(standardWorkMins)})`;
+    const standardWorkHoursText = `${attendance.formatHoursDecimal(standardWorkMins)} 小时`;
+    const standardWorkText = `${standardWorkHoursText} (${attendance.formatDuration(standardWorkMins)})`;
 
     const restMins = settings.weekdayRestMinutes || 60;
     const weekdayOvertimeRuleText = `下班后休息 ${restMins} 分钟起计`;
@@ -98,6 +103,7 @@ Page({
       flexEndRangeText,
       lunchDurationText,
       standardWorkText,
+      standardWorkHoursText,
       weekdayOvertimeRuleText,
       weekendOvertimeRuleText
     };
@@ -239,6 +245,27 @@ Page({
       wx.switchTab({
         url: '/pages/records/records'
       });
+    });
+  },
+
+  /**
+   * 复制 GitHub 开源仓库地址
+   */
+  onCopyGithubUrl() {
+    const url = this.data.githubUrl || 'https://github.com/O0gle/ClockIn';
+
+    wx.setClipboardData({
+      data: url,
+      success: () => {
+        wx.showToast({
+          title: '已复制链接',
+          icon: 'success',
+          duration: 1500
+        });
+      },
+      fail: (err) => {
+        console.warn('[剪贴板] 写入失败:', err);
+      }
     });
   },
 

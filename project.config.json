@@ -23,6 +23,10 @@
       {
         "type": "folder",
         "value": ".workbuddy"
+      },
+      {
+        "type": "file",
+        "value": "private.wx30a0f98557fef6b2.key"
       }
     ],
     "include": []

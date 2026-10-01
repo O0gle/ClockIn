@@ -1,5 +1,20 @@
 <!--pages/settings/settings.wxml-->
 <scroll-view class="settings-container" scroll-y>
+  <!-- 0. 开源与需求反馈 (置顶卡片) -->
+  <view class="github-card card" hover-class="card-hover-effect" bindtap="onCopyGithubUrl">
+    <view class="github-card-inner">
+      <view class="github-icon-badge">🐙</view>
+      <view class="github-text-col">
+        <view class="github-title-row">
+          <text class="github-title">开源代码与需求反馈</text>
+          <text class="github-tag">开源</text>
+        </view>
+        <text class="github-url">{{githubUrl}}</text>
+        <text class="github-hint">代码完全开源，点击卡片复制链接前往提 Issue 或新需求</text>
+      </view>
+    </view>
+  </view>
+
   <!-- 1. 当前生效规则速览卡片 -->
   <view class="rules-summary-card card">
     <view class="summary-top">
@@ -202,35 +217,35 @@
   <view class="about-card card">
     <view class="about-header">
       <text class="about-app-name">弹性打卡助手</text>
-      <text class="about-version">v1.3.0</text>
+      <text class="about-version">v{{appVersion}}</text>
     </view>
     <view class="about-rules-list">
       <view class="about-rule-item">
         <text class="about-num">1、</text>
         <view class="about-content">
           <text class="about-bold">弹性上下班：</text>
-          <text class="about-text">基准 08:30，前后各弹性半小时（08:00 ~ 09:00），系统按每日 7.5 小时标准工时动态推算预计下班时间。</text>
+          <text class="about-text">基准 {{settings.baseStartTime}}，前后各弹性 {{settings.startFlexMinutes}} 分钟（{{flexStartRangeText}}），系统按每日 {{standardWorkHoursText}} 标准工时动态推算预计下班时间。</text>
         </view>
       </view>
       <view class="about-rule-item">
         <text class="about-num">2、</text>
         <view class="about-content">
           <text class="about-bold">午休自动扣除：</text>
-          <text class="about-text">中午 11:40 ~ 13:40 为休息时间（共 2 小时），工作日计算实际在岗工时时自动扣除，不计入工作时长。</text>
+          <text class="about-text">中午 {{settings.lunchStart}} ~ {{settings.lunchEnd}} 为休息时间（共 {{lunchDurationText}}），工作日计算实际在岗工时时自动扣除，不计入工作时长。</text>
         </view>
       </view>
       <view class="about-rule-item">
         <text class="about-num">3、</text>
         <view class="about-content">
           <text class="about-bold">工作日加班规则：</text>
-          <text class="about-text">周一至周五到了满工时下班时间后，休息一个小时才开始计算加班时长（休息的 1 小时内不计入加班）。</text>
+          <text class="about-text">周一至周五到了满工时下班时间后，休息 {{settings.weekdayRestMinutes || 60}} 分钟才开始计算加班时长（休息期间不计入加班）。</text>
         </view>
       </view>
       <view class="about-rule-item">
         <text class="about-num">4、</text>
         <view class="about-content">
           <text class="about-bold">周六日加班规则：</text>
-          <text class="about-text">周六周日全天出勤均计为加班，且把中午（11:40~13:40）及晚上的休息时间都全额计入加班时长（无任何扣除）。</text>
+          <text class="about-text">周六周日全天出勤均计为加班，且把中午（{{settings.lunchStart}}~{{settings.lunchEnd}}）及晚上的休息时间都全额计入加班时长（无任何扣除）。</text>
         </view>
       </view>
     </view>
