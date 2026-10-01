@@ -20,6 +20,41 @@ const STORAGE_KEYS = {
 };
 
 /**
+ * 获取当前小程序的运行环境版本
+ * @returns {'develop' | 'trial' | 'release'}
+ * - develop: 开发版 (开发者工具、真机预览、扫码预览)
+ * - trial: 体验版 (微信公众平台扫码体验)
+ * - release: 正式版 (线上正式发布版)
+ */
+function getEnvVersion() {
+  try {
+    if (typeof wx !== 'undefined' && typeof wx.getAccountInfoSync === 'function') {
+      const accountInfo = wx.getAccountInfoSync();
+      if (accountInfo && accountInfo.miniProgram && accountInfo.miniProgram.envVersion) {
+        return accountInfo.miniProgram.envVersion;
+      }
+    }
+  } catch (e) {
+    console.warn('getAccountInfoSync error, fallback to release', e);
+  }
+  return 'release';
+}
+
+/**
+ * 根据运行环境获取隔离的存储 Key
+ * - release: baseKey (保持既有老键名，零风险兼容线上老用户既有数据)
+ * - trial: baseKey_trial (体验版独立沙箱)
+ * - develop: baseKey_develop (开发版独立沙箱)
+ */
+function getStorageKey(baseKey) {
+  const env = getEnvVersion();
+  if (env === 'release') {
+    return baseKey;
+  }
+  return `${baseKey}_${env}`;
+}
+
+/**
  * 判断指定日期字符串是否为周末 (周六或周日)
  * @param {string} dateStr - 格式 YYYY-MM-DD
  * @returns {boolean} true: 周六或周日; false: 周一至周五
@@ -109,9 +144,17 @@ function formatHoursDecimal(minutes) {
 function getSettings() {
   try {
     if (typeof wx !== 'undefined' && wx.getStorageSync) {
-      const stored = wx.getStorageSync(STORAGE_KEYS.SETTINGS);
+      const storageKey = getStorageKey(STORAGE_KEYS.SETTINGS);
+      const stored = wx.getStorageSync(storageKey);
       if (stored && typeof stored === 'object') {
         return Object.assign({}, DEFAULT_SETTINGS, stored);
+      }
+      // 若处于开发版或体验版且沙箱内尚无专属设置，默认继承线上基准设置作为初始值
+      if (getEnvVersion() !== 'release') {
+        const releaseStored = wx.getStorageSync(STORAGE_KEYS.SETTINGS);
+        if (releaseStored && typeof releaseStored === 'object') {
+          return Object.assign({}, DEFAULT_SETTINGS, releaseStored);
+        }
       }
     }
   } catch (e) {
@@ -126,7 +169,8 @@ function getSettings() {
 function saveSettings(settings) {
   try {
     if (typeof wx !== 'undefined' && wx.setStorageSync) {
-      wx.setStorageSync(STORAGE_KEYS.SETTINGS, settings);
+      const storageKey = getStorageKey(STORAGE_KEYS.SETTINGS);
+      wx.setStorageSync(storageKey, settings);
     }
   } catch (e) {
     console.error('saveSettings error', e);
@@ -512,7 +556,8 @@ function getCurrentTimeStr(dateObj) {
 function getAllRecords() {
   try {
     if (typeof wx !== 'undefined' && wx.getStorageSync) {
-      const records = wx.getStorageSync(STORAGE_KEYS.RECORDS);
+      const storageKey = getStorageKey(STORAGE_KEYS.RECORDS);
+      const records = wx.getStorageSync(storageKey);
       if (records && typeof records === 'object') {
         return records;
       }
@@ -529,10 +574,39 @@ function getAllRecords() {
 function saveAllRecords(records) {
   try {
     if (typeof wx !== 'undefined' && wx.setStorageSync) {
-      wx.setStorageSync(STORAGE_KEYS.RECORDS, records);
+      const storageKey = getStorageKey(STORAGE_KEYS.RECORDS);
+      wx.setStorageSync(storageKey, records);
     }
   } catch (e) {
     console.error('saveAllRecords error', e);
+  }
+}
+
+/**
+ * 将正式版的数据克隆一份到当前测试沙箱（只读正式版，写入当前沙箱）
+ */
+function copyReleaseDataToCurrentEnv() {
+  const env = getEnvVersion();
+  if (env === 'release') {
+    return { success: false, message: '当前已是正式环境，无需克隆' };
+  }
+
+  try {
+    const releaseRecords = (typeof wx !== 'undefined' && wx.getStorageSync) ? (wx.getStorageSync(STORAGE_KEYS.RECORDS) || {}) : {};
+    const releaseSettings = (typeof wx !== 'undefined' && wx.getStorageSync) ? (wx.getStorageSync(STORAGE_KEYS.SETTINGS) || {}) : {};
+
+    saveAllRecords(releaseRecords);
+    if (releaseSettings && typeof releaseSettings === 'object' && Object.keys(releaseSettings).length > 0) {
+      saveSettings(releaseSettings);
+    }
+
+    return {
+      success: true,
+      recordCount: Object.keys(releaseRecords).length
+    };
+  } catch (e) {
+    console.error('copyReleaseDataToCurrentEnv error', e);
+    return { success: false, message: e.message || '克隆失败' };
   }
 }
 
@@ -668,6 +742,8 @@ module.exports = {
   saveAllRecords,
   getRecordByDate,
   saveDailyRecord,
-  deleteDailyRecord,
-  getMonthStatistics
+  getMonthStatistics,
+  getEnvVersion,
+  getStorageKey,
+  copyReleaseDataToCurrentEnv
 };

@@ -247,6 +247,10 @@
   background: #fef2f2;
 }
 
+.item-icon-wrap.wrap-clone {
+  background: #eef2ff;
+}
+
 .item-icon {
   font-size: 32rpx;
   line-height: 1;
@@ -279,6 +283,39 @@
 
 .text-danger {
   color: #dc2626 !important;
+}
+
+.text-clone {
+  color: #4338ca !important;
+}
+
+/* 沙箱环境指示横幅 */
+.sandbox-banner {
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+  background: #f0fdf4;
+  border: 1rpx solid #bbf7d0;
+  border-radius: 12rpx;
+  padding: 16rpx 20rpx;
+  margin-bottom: 24rpx;
+}
+
+.sandbox-badge {
+  display: inline-flex;
+  align-self: flex-start;
+  font-size: 22rpx;
+  font-weight: 700;
+  color: #15803d;
+  background: #dcfce7;
+  padding: 4rpx 14rpx;
+  border-radius: 8rpx;
+}
+
+.sandbox-tip {
+  font-size: 22rpx;
+  color: #166534;
+  line-height: 1.4;
 }
 
 /* 4. 关于卡片 */

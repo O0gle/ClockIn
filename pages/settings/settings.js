@@ -37,15 +37,33 @@ Page({
     standardWorkHoursText: '7.5 小时',
     weekdayOvertimeRuleText: '下班休息 60 分钟后起算',
     weekendOvertimeRuleText: '全天计加班，中午晚上休息全计入',
-    githubUrl: 'https://github.com/O0gle/ClockIn'
+    githubUrl: 'https://github.com/O0gle/ClockIn',
+
+    // 环境与数据隔离状态
+    envVersion: 'release',
+    isSandbox: false,
+    envDisplayName: '正式版'
   },
 
   onLoad() {
+    this.updateEnvState();
     this.loadSettings();
   },
 
   onShow() {
+    this.updateEnvState();
     this.loadSettings();
+  },
+
+  updateEnvState() {
+    const envVersion = attendance.getEnvVersion();
+    const isSandbox = envVersion !== 'release';
+    const envDisplayName = envVersion === 'develop' ? '开发版沙箱' : (envVersion === 'trial' ? '体验版沙箱' : '正式版');
+    this.setData({
+      envVersion,
+      isSandbox,
+      envDisplayName
+    });
   },
 
   loadSettings() {
@@ -233,7 +251,8 @@ Page({
       // 记录导入的目标年月，通知明细页面自动更新日历
       if (parseRes.minDate) {
         const parts = parseRes.minDate.split('-');
-        wx.setStorageSync('records_view_target_month', {
+        const targetMonthKey = attendance.getStorageKey('records_view_target_month');
+        wx.setStorageSync(targetMonthKey, {
           year: parseInt(parts[0], 10),
           month: parseInt(parts[1], 10),
           date: parseRes.minDate,
@@ -270,21 +289,56 @@ Page({
   },
 
   /**
-   * 清空所有打卡记录
+   * 清空打卡记录 (区分沙箱与正式版)
    */
   clearAllRecords() {
+    const { isSandbox, envDisplayName } = this.data;
+    const content = isSandbox
+      ? `确定要清空【${envDisplayName}】的所有打卡记录吗？\n\n✅ 放心：数据已环境隔离，此操作绝不会影响线上正式版真实数据！`
+      : '确定要清空所有的打卡与考勤记录吗？清空后数据无法恢复！';
+
     wx.showModal({
-      title: '⚠️ 危险操作',
-      content: '确定要清空所有的打卡与考勤记录吗？清空后数据无法恢复！',
+      title: isSandbox ? '⚠️ 清空测试沙箱记录' : '⚠️ 危险操作',
+      content,
       confirmText: '清空全部',
       confirmColor: '#dc2626',
       success: (res) => {
         if (res.confirm) {
           attendance.saveAllRecords({});
           wx.showToast({
-            title: '已清空打卡记录',
+            title: isSandbox ? '已清空沙箱记录' : '已清空打卡记录',
             icon: 'success'
           });
+        }
+      }
+    });
+  },
+
+  /**
+   * 从正式版克隆一份数据到当前测试沙箱（仅非正式版可用）
+   */
+  handleCloneFromRelease() {
+    wx.showModal({
+      title: '从正式版复制数据',
+      content: '将线上正式版的数据复制一份到当前测试沙箱，便于测试新功能或报表。\n\n提示：此操作仅向测试沙箱写入，绝不会修改或影响正式版数据。',
+      confirmText: '确定复制',
+      confirmColor: '#1677ff',
+      success: (res) => {
+        if (res.confirm) {
+          const result = attendance.copyReleaseDataToCurrentEnv();
+          if (result.success) {
+            wx.showToast({
+              title: `已复制 ${result.recordCount} 条数据`,
+              icon: 'success',
+              duration: 2000
+            });
+            this.loadSettings();
+          } else {
+            wx.showToast({
+              title: result.message || '复制失败',
+              icon: 'none'
+            });
+          }
         }
       }
     });
