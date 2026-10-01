@@ -105,14 +105,6 @@
         <text class="detail-date">{{selectedDateStr}}</text>
         <text class="badge badge-{{selectedDayRecord.overtimeMinutes > 0 ? 'accent' : (selectedDayRecord.summaryStatus === 'normal' ? 'success' : 'default')}}">{{selectedDayRecord.summaryStatusText || '未打卡'}}</text>
       </view>
-      <view class="detail-actions">
-        <view class="action-btn-sm" hover-class="hover-effect" data-date="{{selectedDateStr}}" bindtap="openEditModal">
-          <text>✎ 补卡/修改</text>
-        </view>
-        <view wx:if="{{selectedDayRecord.signInTime || selectedDayRecord.signOutTime}}" class="action-btn-sm text-danger" hover-class="hover-effect" data-date="{{selectedDateStr}}" bindtap="deleteRecord">
-          <text>删除</text>
-        </view>
-      </view>
     </view>
 
     <view class="detail-grid" wx:if="{{selectedDayRecord.signInTime || selectedDayRecord.signOutTime}}">
@@ -124,7 +116,7 @@
       <view class="detail-item">
         <text class="detail-label">预计下班</text>
         <text class="detail-val">{{selectedDayRecord.expectedSignOutTime || '--:--'}}</text>
-        <text class="detail-sub">弹性满7.5h</text>
+        <text class="detail-sub">{{selectedDayRecord.isWeekend ? '全计加班' : '弹性满7.5h'}}</text>
       </view>
       <view class="detail-item">
         <text class="detail-label">下班打卡</text>
@@ -140,12 +132,21 @@
 
     <view class="detail-empty" wx:else>
       <text class="empty-text">该日期暂无打卡记录</text>
-      <button class="empty-add-btn" data-date="{{selectedDateStr}}" bindtap="openEditModal">+ 为该日补卡</button>
     </view>
 
     <view class="detail-remark" wx:if="{{selectedDayRecord.remark}}">
       <text class="remark-title">备注：</text>
       <text class="remark-text">{{selectedDayRecord.remark}}</text>
+    </view>
+
+    <!-- 卡片底部水平对齐的操作按钮 (删除在左，补卡/修改在右) -->
+    <view class="detail-footer">
+      <button wx:if="{{selectedDayRecord.signInTime || selectedDayRecord.signOutTime}}" class="detail-footer-btn btn-danger" hover-class="hover-effect" data-date="{{selectedDateStr}}" bindtap="deleteRecord">
+        <text>删除</text>
+      </button>
+      <button class="detail-footer-btn" hover-class="hover-effect" data-date="{{selectedDateStr}}" bindtap="openEditModal">
+        <text>✎ 补卡/修改</text>
+      </button>
     </view>
   </view>
 
@@ -154,7 +155,7 @@
     <view class="list-header">
       <text class="list-title">考勤明细列表 (共 {{statistics.records.length}} 条)</text>
       <view class="add-record-btn" hover-class="hover-effect" bindtap="openNewRecordModal">
-        <text>+ 补充打卡</text>
+        <text>✎ 补卡/修改</text>
       </view>
     </view>
 
@@ -202,8 +203,7 @@
     <view class="empty-list card" wx:else>
       <text class="empty-icon">📂</text>
       <text class="empty-title">本月暂无打卡明细</text>
-      <text class="empty-desc">前往首页打卡，或点击下方按钮手动补卡</text>
-      <button class="empty-btn" bindtap="openEditModal">+ 手动补录考勤</button>
+      <text class="empty-desc">前往打卡页面打卡，或点击右上角补卡/修改</text>
     </view>
   </view>
 
