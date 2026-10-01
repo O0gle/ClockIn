@@ -48,10 +48,11 @@ Page({
 
   onShow() {
     // 检查是否有新导入的数据指定要查看的目标月份
-    const target = wx.getStorageSync('records_view_target_month');
+    const targetMonthKey = attendance.getStorageKey('records_view_target_month');
+    const target = wx.getStorageSync(targetMonthKey);
     if (target && target.year && target.month) {
       const pad = n => (n < 10 ? '0' + n : '' + n);
-      wx.removeStorageSync('records_view_target_month');
+      wx.removeStorageSync(targetMonthKey);
 
       // 确保在 setData 完成后精准刷新日历
       this.setData({

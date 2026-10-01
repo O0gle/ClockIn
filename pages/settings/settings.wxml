@@ -168,6 +168,12 @@
       <text class="section-sub-text">纯本地存储 · 100% 永久免费</text>
     </view>
 
+    <!-- 沙箱环境安全提示条 (仅开发版/体验版展示) -->
+    <view class="sandbox-banner" wx:if="{{isSandbox}}">
+      <view class="sandbox-badge">🧪 {{envDisplayName}}</view>
+      <text class="sandbox-tip">数据已环境隔离沙箱化，测试或清空绝不影响线上正式版真实数据</text>
+    </view>
+
     <view class="action-list">
       <!-- 导出 Excel 表格 (全部所有月份) -->
       <view class="action-item" hover-class="hover-effect" bindtap="exportCsvReport">
@@ -197,6 +203,20 @@
         <text class="action-arrow">›</text>
       </view>
 
+      <!-- 🔄 从正式版复制数据到沙箱 (仅开发版/体验版展示) -->
+      <view class="action-item" hover-class="hover-effect" bindtap="handleCloneFromRelease" wx:if="{{isSandbox}}">
+        <view class="item-left">
+          <view class="item-icon-wrap wrap-clone">
+            <text class="item-icon">🔄</text>
+          </view>
+          <view class="item-text-group">
+            <text class="item-title text-clone">从正式版复制数据到沙箱</text>
+            <text class="item-desc">复制一份线上数据副本用于测试，绝不修改正式版</text>
+          </view>
+        </view>
+        <text class="action-arrow">›</text>
+      </view>
+
       <!-- 清空记录 -->
       <view class="action-item" hover-class="hover-effect" bindtap="clearAllRecords">
         <view class="item-left">
@@ -204,8 +224,8 @@
             <text class="item-icon">🗑</text>
           </view>
           <view class="item-text-group">
-            <text class="item-title text-danger">清空所有打卡记录</text>
-            <text class="item-desc">清除手机本地保存的历史打卡记录</text>
+            <text class="item-title text-danger">清空{{isSandbox ? envDisplayName : '所有'}}打卡记录</text>
+            <text class="item-desc">{{isSandbox ? '仅清空当前测试沙箱数据，不影响正式版' : '清除手机本地保存的历史打卡记录'}}</text>
           </view>
         </view>
         <text class="action-arrow text-danger">›</text>
