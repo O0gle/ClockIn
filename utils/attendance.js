@@ -196,7 +196,7 @@ function calculateExpectedSignOut(signInTimeStr, customSettings, dateStr) {
 
   if (dateStr && isWeekendDate(dateStr)) {
     return {
-      expectedSignOutTime: '全计加班',
+      expectedSignOutTime: '周末加班',
       expectedOutMins: 0,
       status: 'weekend',
       note: '周末出勤全计加班',
@@ -366,7 +366,7 @@ function evaluateRecord(rawRecord, customSettings) {
 
   // 1. 周末考勤计算
   if (isWeekend) {
-    record.expectedSignOutTime = '周末全计加班';
+    record.expectedSignOutTime = '周末加班';
     record.expectedOutMins = 0;
     record.overtimeStartHint = '全天计加班(含中午晚上休息)';
 
@@ -742,6 +742,7 @@ module.exports = {
   saveAllRecords,
   getRecordByDate,
   saveDailyRecord,
+  deleteDailyRecord,
   getMonthStatistics,
   getEnvVersion,
   getStorageKey,
