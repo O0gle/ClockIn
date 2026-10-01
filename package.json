@@ -1,7 +1,7 @@
 {
   "name": "clock-in-miniprogram",
-  "version": "2.0.0",
-  "lastUploadedVersion": "2.0.0",
+  "version": "2.0.1",
+  "lastUploadedVersion": "2.0.1",
   "private": true,
   "description": "弹性打卡助手微信小程序",
   "scripts": {
