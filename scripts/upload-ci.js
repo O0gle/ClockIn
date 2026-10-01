@@ -45,12 +45,15 @@ function bumpPatchVersion(ver) {
 const packageJsonPath = path.join(projectRoot, 'package.json');
 const versionJsPath = path.join(projectRoot, 'utils', 'version.js');
 
-// 1. 读取当前版本号（优先 package.json，其次 utils/version.js，缺省 1.0.5）
-let currentVersion = '1.0.5';
+// 1. 读取当前版本号与上次已上传版本号
+let currentVersion = '2.0.0';
+let lastUploadedVersion = '';
+
 if (fs.existsSync(packageJsonPath)) {
   try {
     const pkg = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
     if (pkg.version) currentVersion = pkg.version;
+    if (pkg.lastUploadedVersion) lastUploadedVersion = pkg.lastUploadedVersion;
   } catch (e) {}
 } else if (fs.existsSync(versionJsPath)) {
   try {
@@ -59,13 +62,20 @@ if (fs.existsSync(packageJsonPath)) {
   } catch (e) {}
 }
 
-// 2. 确定本次上传版本号：若环境变量显式指定 MP_VERSION 则采用，否则最后一位自动递增 1
-const version = process.env.MP_VERSION || bumpPatchVersion(currentVersion);
-
-if (!process.env.MP_VERSION) {
-  console.log(`[版本自增] 上一个版本: ${currentVersion} -> 自动递增为本次版本: ${version}`);
-} else {
+// 2. 确定本次上传版本号：
+// - 若环境变量显式指定 MP_VERSION 则采用
+// - 若当前版本已人为调整升级 (currentVersion !== lastUploadedVersion)，优先采用当前版本（如 2.0.0）
+// - 否则最后一位自动递增 +1，防止微信后台“版本号已存在”报错
+let version;
+if (process.env.MP_VERSION) {
+  version = process.env.MP_VERSION;
   console.log(`[指定版本] 使用环境变量指定版本: ${version}`);
+} else if (lastUploadedVersion && currentVersion !== lastUploadedVersion) {
+  version = currentVersion;
+  console.log(`[主动升级] 检测到版本号已主动升级为: ${version}，本次上传将使用该版本`);
+} else {
+  version = bumpPatchVersion(currentVersion);
+  console.log(`[版本自增] 上一个版本: ${currentVersion} -> 自动递增为本次版本: ${version}`);
 }
 
 // 3. 同步最新版本回写 package.json
@@ -73,6 +83,7 @@ if (fs.existsSync(packageJsonPath)) {
   try {
     const pkg = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
     pkg.version = version;
+    pkg.lastUploadedVersion = version;
     fs.writeFileSync(packageJsonPath, JSON.stringify(pkg, null, 2) + '\n', 'utf8');
   } catch (e) {
     console.warn('[警告] 同步 package.json 失败:', e.message);

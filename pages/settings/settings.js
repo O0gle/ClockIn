@@ -6,7 +6,7 @@ const { version: appVersion } = require('../../utils/version.js');
 
 Page({
   data: {
-    appVersion: appVersion || '1.0.5',
+    appVersion: appVersion || '2.0.0',
     settings: {
       baseStartTime: '08:30',
       startFlexMinutes: 30,
