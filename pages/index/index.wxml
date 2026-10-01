@@ -90,10 +90,6 @@
         <text class="card-title">今日考勤明细</text>
         <text class="card-subtitle">{{todayDate}}</text>
       </view>
-      <view class="edit-btn" hover-class="hover-effect" bindtap="openEditModal">
-        <text class="edit-icon">✎</text>
-        <text class="edit-text">补卡 / 修改</text>
-      </view>
     </view>
 
     <view class="metrics-grid">
@@ -207,17 +203,6 @@
     </view>
   </view>
 
-  <!-- 5. 底部快捷操作与备注 -->
-  <view class="bottom-tools card">
-    <view class="remark-row">
-      <text class="remark-label">今日备注：</text>
-      <text class="remark-content">{{record.remark || '无备注 (可点击补卡添加)'}}</text>
-    </view>
-    <view class="quick-btn-row">
-      <button class="quick-btn" hover-class="hover-effect" bindtap="openEditModal">✍ 补录/修改</button>
-      <button class="quick-btn primary" hover-class="hover-effect" bindtap="goToRecords">📊 查看明细与月报</button>
-    </view>
-  </view>
 </scroll-view>
 
 <!-- 补卡/修改弹窗 -->

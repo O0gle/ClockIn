@@ -250,7 +250,7 @@ Page({
   },
 
   /**
-   * 列表视图顶部点击「+ 补充打卡」：主动为指定月份或指定日期补录
+   * 列表视图顶部点击「✎ 补卡/修改」：主动为指定月份或指定日期补录
    */
   openNewRecordModal() {
     const { currentYear, currentMonth } = this.data;
