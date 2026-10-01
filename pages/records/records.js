@@ -44,6 +44,13 @@ Page({
       monthPickerValue,
       selectedDateStr: today
     });
+
+    if (wx.showShareMenu) {
+      wx.showShareMenu({
+        withShareTicket: true,
+        menus: ['shareAppMessage', 'shareTimeline']
+      });
+    }
   },
 
   onShow() {
@@ -507,5 +514,18 @@ Page({
         });
       }
     });
+  },
+
+  onShareAppMessage() {
+    return {
+      title: '弹性打卡助手 - 专注弹性工时推算与考勤加班计算',
+      path: '/pages/index/index'
+    };
+  },
+
+  onShareTimeline() {
+    return {
+      title: '弹性打卡助手 - 专注弹性工时推算与考勤加班计算'
+    };
   }
 });
