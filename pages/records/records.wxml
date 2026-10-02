@@ -53,7 +53,7 @@
     <view class="stats-footer">
       <view class="footer-tip">
         <text class="tip-icon">ℹ</text>
-        <text class="tip-text">工作日下班休息1h起算 / 周末休息全计入加班</text>
+        <text class="tip-text">{{restTipText || '工作日下班休息1h起算 / 周末及节假日全计加班'}}</text>
       </view>
     </view>
   </view>
@@ -77,6 +77,7 @@
         <view class="day-cell {{item.isCurrentMonth ? '' : 'other-month'}} {{item.dateStr === selectedDateStr ? 'selected-day' : ''}} {{item.isToday ? 'today-day' : ''}}"
               data-item="{{item}}" bindtap="onSelectDay">
           <text class="day-number">{{item.dayNumber}}</text>
+          <text class="corner-badge badge-{{item.holidayBadge === '休' ? 'holiday' : 'workday'}}" wx:if="{{item.holidayBadge}}">{{item.holidayBadge}}</text>
 
           <!-- 考勤状态标签 -->
           <view class="day-tag-area" wx:if="{{item.hasRecord}}">
@@ -126,7 +127,7 @@
       <view class="detail-item detail-ot">
         <text class="detail-label">加班时长</text>
         <text class="detail-val ot-color">{{selectedDayRecord.overtimeText || '0分钟'}}</text>
-        <text class="detail-sub ot-color">{{selectedDayRecord.isWeekend ? '全额计入' : '休息1h后起算'}}</text>
+        <text class="detail-sub ot-color">{{selectedDayRecord.overtimeRuleHint || (selectedDayRecord.isWeekend ? '全额计入' : '休息' + (restDurationText || '1h') + '后起算')}}</text>
       </view>
     </view>
 
@@ -188,7 +189,7 @@
               <text class="col-val">{{item.workText}}</text>
             </view>
             <view class="data-col ot-col">
-              <text class="col-label">{{item.isWeekend ? '加班(全额计)' : '加班(休息1h起)'}}</text>
+              <text class="col-label">{{item.overtimeColLabel || (item.isWeekend ? '加班(全额计)' : '加班(休息' + (restDurationText || '1h') + '起)')}}</text>
               <text class="col-val ot-val">{{item.overtimeText}}</text>
             </view>
           </view>

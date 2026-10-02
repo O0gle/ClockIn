@@ -8,7 +8,7 @@
         <text class="weekday-text {{isWeekend ? 'weekend-text' : ''}}">{{weekDayText}}</text>
       </view>
       <view class="rule-tag {{isWeekend ? 'rule-tag-weekend' : ''}}">
-        <text class="rule-tag-text">{{isWeekend ? '周末 · 休息全计加班' : '工作日 · 弹性满7.5h'}}</text>
+        <text class="rule-tag-text">{{ruleTagText || (isWeekend ? '周末 · 休息全计加班' : '工作日 · 弹性满7.5h')}}</text>
       </view>
     </view>
     <view class="time-display">
@@ -36,7 +36,7 @@
           <text class="punch-title" wx:if="{{!isInPressing}}">{{isWeekend ? '长按3秒打卡' : '长按3秒上班'}}</text>
           <text class="punch-title text-pressing" wx:else>还需按住 {{inPressRemaining}}s</text>
           <text class="punch-time-hint">{{currentTimeText}}</text>
-          <text class="punch-rule-sub" wx:if="{{!isInPressing}}">{{isWeekend ? '周末出勤全计加班' : '弹性区间 08:00 ~ 09:00'}}</text>
+          <text class="punch-rule-sub" wx:if="{{!isInPressing}}">{{isWeekend ? ((dayTypeName && dayTypeName !== '周末' ? dayTypeName : '周末') + '出勤全计加班') : '弹性区间 08:00 ~ 09:00'}}</text>
           <text class="punch-rule-sub text-pressing" wx:else>长按中... 满3秒打卡</text>
         </view>
       </view>
@@ -127,22 +127,22 @@
       <view class="metric-item highlight-item">
         <view class="metric-top">
           <text class="metric-label">加班时长</text>
-          <text class="badge badge-accent">{{isWeekend ? '休息全计入' : '下班休息1h起'}}</text>
+          <text class="badge badge-accent">{{isWeekend ? '休息全计入' : '下班休息' + (restDurationText || '1h') + '起'}}</text>
         </view>
         <text class="metric-value ot-value">{{record.overtimeText || '0分钟'}}</text>
-        <text class="metric-hint">{{isWeekend ? '中午及晚上休息均计入' : (record.overtimeStartTime ? record.overtimeStartTime + '起算加班' : '休息1h后起算')}}</text>
+        <text class="metric-hint">{{isWeekend ? '中午及晚上休息均计入' : (record.overtimeStartTime ? record.overtimeStartTime + '起算加班' : '休息' + (restDurationText || '1h') + '后起算')}}</text>
       </view>
     </view>
 
     <!-- 工作总时长展示行 -->
     <view class="work-duration-bar" wx:if="{{record.signInTime && record.signOutTime}}">
       <view class="work-summary-left">
-        <text class="summary-label">{{isWeekend ? '周末累计加班：' : '实际出勤工时：'}}</text>
+        <text class="summary-label">{{isWeekend ? ((dayTypeName && dayTypeName !== '周末' ? dayTypeName : '周末') + '累计加班：') : '实际出勤工时：'}}</text>
         <text class="summary-val">{{isWeekend ? record.overtimeText : record.workText}}</text>
         <text class="summary-sub">{{isWeekend ? '(中午/晚间休息均已计入)' : '(已扣午休2小时)'}}</text>
       </view>
       <view class="work-status-badge">
-        <text class="badge badge-{{record.overtimeMinutes > 0 ? 'accent' : 'success'}}">{{isWeekend ? '周末全额加班' : (record.overtimeMinutes > 0 ? '含工作日加班' : '工时正常')}}</text>
+        <text class="badge badge-{{record.overtimeMinutes > 0 ? 'accent' : 'success'}}">{{isWeekend ? ((dayTypeName && dayTypeName !== '周末' ? dayTypeName : '周末') + '全额加班') : (record.overtimeMinutes > 0 ? '含工作日加班' : '工时正常')}}</text>
       </view>
     </view>
   </view>
