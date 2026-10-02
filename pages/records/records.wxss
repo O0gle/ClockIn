@@ -269,6 +269,27 @@
   font-weight: 500;
 }
 
+.corner-badge {
+  position: absolute;
+  top: 4rpx;
+  right: 6rpx;
+  font-size: 16rpx;
+  line-height: 1;
+  font-weight: 600;
+  padding: 2rpx 4rpx;
+  border-radius: 4rpx;
+}
+
+.corner-badge.badge-holiday {
+  color: #dc2626;
+  background: #fee2e2;
+}
+
+.corner-badge.badge-workday {
+  color: #2563eb;
+  background: #dbeafe;
+}
+
 .day-tag-area {
   display: flex;
   align-items: center;

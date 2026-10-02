@@ -103,6 +103,10 @@ Page({
     const recordsMap = attendance.getAllRecords();
     const statistics = attendance.getMonthStatistics(currentYear, currentMonth, settings, recordsMap);
 
+    // 动态工作日下班休息时长文案联动
+    const restDurationText = attendance.formatRestMinutes(settings.weekdayRestMinutes || 60);
+    const restTipText = `工作日下班休息${restDurationText}起算 / 周末及节假日全计加班`;
+
     // 基于内存记录构建日历网格
     const calendarDays = this.buildCalendarDays(currentYear, currentMonth, recordsMap, settings);
 
@@ -112,7 +116,9 @@ Page({
     this.setData({
       statistics,
       calendarDays,
-      selectedDayRecord: dayRecord
+      selectedDayRecord: dayRecord,
+      restDurationText,
+      restTipText
     });
   },
 
@@ -149,6 +155,7 @@ Page({
       }
 
       const isToday = dateStr === todayStr;
+      const dayInfo = attendance.getDayInfo(dateStr);
 
       let statusMiniText = '';
       if (rec) {
@@ -172,7 +179,10 @@ Page({
         record: rec,
         statusType: rec ? (rec.overtimeMinutes > 0 ? (rec.isWeekend ? 'weekend_ot' : 'overtime') : (rec.signInStatus === 'late' || rec.signOutStatus === 'early_leave' ? 'abnormal' : 'normal')) : 'none',
         overtimeText: rec && rec.overtimeMinutes > 0 ? `+${attendance.formatHoursDecimal(rec.overtimeMinutes)}h` : '',
-        statusMiniText
+        statusMiniText,
+        holidayBadge: dayInfo.badge, // '休' | '班' | ''
+        dayType: dayInfo.type,
+        dayTypeName: dayInfo.name
       });
     }
 
