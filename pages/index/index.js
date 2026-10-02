@@ -108,7 +108,9 @@ Page({
     const today = attendance.getTodayDateStr(now);
     const settings = attendance.getSettings();
     const record = attendance.getRecordByDate(today, settings);
-    const isWeekend = attendance.isWeekendDate(today);
+    const dayInfo = attendance.getDayInfo(today);
+    const isWeekend = dayInfo.isOffDay;
+    const restDurationText = attendance.formatRestMinutes(settings.weekdayRestMinutes || 60);
 
     const clockData = this.computeClockData(now);
     const workStatus = this.computeWorkStatus(record, settings, isWeekend, now);
@@ -117,6 +119,9 @@ Page({
     this.setData(Object.assign({
       todayDate: today,
       isWeekend,
+      restDurationText,
+      dayType: dayInfo.type,
+      dayTypeName: dayInfo.name,
       settings,
       record
     }, clockData, workStatus));
@@ -139,13 +144,25 @@ Page({
     const dayOfWeek = now.getDay();
     const weekDayText = weekDays[dayOfWeek];
     const currentDateText = `${year}年${month}月${date}日`;
-    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+
+    const todayStr = attendance.getTodayDateStr(now);
+    const dayInfo = attendance.getDayInfo(todayStr);
+    const isWeekend = dayInfo.isOffDay;
+    const ruleTagText = dayInfo.type === 'holiday'
+      ? `${dayInfo.name} · 全天计加班`
+      : (dayInfo.type === 'workday_makeup'
+        ? `${dayInfo.name} · 弹性满7.5h`
+        : (isWeekend ? '周末 · 休息全计加班' : '工作日 · 弹性满7.5h'));
 
     return {
       currentTimeText,
       currentDateText,
       weekDayText,
-      isWeekend
+      isWeekend,
+      dayType: dayInfo.type,
+      dayTypeName: dayInfo.name,
+      holidayBadge: dayInfo.badge,
+      ruleTagText
     };
   },
 
@@ -153,10 +170,12 @@ Page({
    * 纯函数：根据打卡情况与时间推算工作状态（不含 setData）
    */
   computeWorkStatus(record, settings, isWeekend, now = new Date()) {
+    const dayName = (record && record.dayTypeName) || (isWeekend ? '周末' : '工作日');
+
     if (!record || !settings) {
       return {
         workState: 'unpunched',
-        workStateText: isWeekend ? '周末尚未打卡' : '今日尚未打卡',
+        workStateText: isWeekend ? `${dayName}尚未打卡` : '今日尚未打卡',
         elapsedWorkText: '',
         remainingWorkText: '',
         overtimeActiveText: ''
@@ -167,7 +186,7 @@ Page({
     const nowTimeStr = attendance.getCurrentTimeStr(now);
 
     let workState = 'unpunched';
-    let workStateText = isWeekend ? '周末尚未打卡' : '今日尚未打卡';
+    let workStateText = isWeekend ? `${dayName}尚未打卡` : '今日尚未打卡';
     let elapsedWorkText = '';
     let remainingWorkText = '';
     let overtimeActiveText = '';
@@ -178,39 +197,40 @@ Page({
       if (attendance.isRestrictedPunchTime(now)) {
         workStateText = '凌晨休息时段 (07:00开放打卡)';
       } else {
-        workStateText = isWeekend ? '周末尚未打卡 (全天计加班)' : '今日尚未打卡';
+        workStateText = isWeekend ? `${dayName}尚未打卡 (全天计加班)` : '今日尚未打卡';
       }
     } else if (record.signInTime && !record.signOutTime) {
       // 工作中
       const inMins = attendance.timeStrToMinutes(record.signInTime);
 
       if (isWeekend) {
-        // 周末：把中午、晚上的休息时间都计入加班时长
+        // 周末及节假日：把中午、晚上的休息时间都计入加班时长
         workState = 'overtime';
         const weekendOtMins = Math.max(0, nowMins - inMins);
         overtimeActiveText = attendance.formatDuration(weekendOtMins);
         elapsedWorkText = overtimeActiveText;
-        workStateText = `周末加班进行中 (已加 ${overtimeActiveText}，休息全计)`;
+        workStateText = `${dayName}加班进行中 (已加 ${overtimeActiveText}，休息全计)`;
         remainingWorkText = '全天计加班';
       } else {
-        // 工作日：满7.5h后休息1小时起算加班
+        // 工作日：满7.5h后休息指定时长(默认1h)起算加班
         const expectedOutMins = record.expectedOutMins;
         const currentWorkMins = attendance.calculateWorkDuration(record.signInTime, nowTimeStr, settings, record.date);
         elapsedWorkText = attendance.formatDuration(currentWorkMins);
 
         const restMins = settings.weekdayRestMinutes || 60;
+        const restText = attendance.formatRestMinutes(restMins);
         const overtimeStartMins = (expectedOutMins || attendance.timeStrToMinutes(settings.baseEndTime)) + restMins;
 
         if (nowMins >= overtimeStartMins) {
-          // 当前已经在加班时间 (满工时 + 休息1小时 之后)
+          // 当前已经在加班时间 (满工时 + 休息指定时长 之后)
           workState = 'overtime';
           const currentOvertimeMins = nowMins - overtimeStartMins;
           overtimeActiveText = attendance.formatDuration(currentOvertimeMins);
           const otStartStr = attendance.minutesToTimeStr(overtimeStartMins);
-          workStateText = `工作日加班进行中 (休息1h后从${otStartStr}已加 ${overtimeActiveText})`;
+          workStateText = `工作日加班进行中 (休息${restText}后从${otStartStr}已加 ${overtimeActiveText})`;
           remainingWorkText = '已进入加班';
         } else if (expectedOutMins && nowMins >= expectedOutMins) {
-          // 已经满7.5小时工时，处于下班休息1小时内
+          // 已经满7.5小时工时，处于下班休息缓冲期内
           workState = 'working';
           const restLeft = overtimeStartMins - nowMins;
           workStateText = `已满标准工时 · 休息缓冲中 (离加班还剩 ${restLeft}分钟)`;
@@ -229,7 +249,7 @@ Page({
       // 已经完成下班打卡
       if (record.overtimeMinutes > 0) {
         workState = 'off_work';
-        workStateText = isWeekend ? `周末加班完成 (${record.overtimeText})` : `已下班 (工作日加班 ${record.overtimeText})`;
+        workStateText = isWeekend ? `${dayName}加班完成 (${record.overtimeText})` : `已下班 (工作日加班 ${record.overtimeText})`;
       } else {
         workState = 'off_work';
         workStateText = `已下班 (工时 ${record.workText})`;
