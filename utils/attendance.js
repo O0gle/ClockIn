@@ -54,18 +54,42 @@ function getStorageKey(baseKey) {
   return `${baseKey}_${env}`;
 }
 
+const holidays = require('./holidays.js');
+
 /**
- * 判断指定日期字符串是否为周末 (周六或周日)
+ * 格式化工作日下班休息时长文案 (如 60 => "1h", 90 => "1.5h", 30 => "30分钟")
+ * @param {number} mins - 分钟数
+ * @returns {string}
+ */
+function formatRestMinutes(mins) {
+  const m = typeof mins === 'number' ? mins : 60;
+  if (m === 60) return '1h';
+  if (m === 90) return '1.5h';
+  if (m === 120) return '2h';
+  if (m % 60 === 0) return `${m / 60}h`;
+  return `${m}分钟`;
+}
+
+/**
+ * 判断指定日期字符串是否为非工作日 (周末或法定节假日放假，出勤全计加班)
  * @param {string} dateStr - 格式 YYYY-MM-DD
- * @returns {boolean} true: 周六或周日; false: 周一至周五
+ * @returns {boolean} true: 休息日 (周末或节假日); false: 工作日 (普通工作日或调休上班日)
  */
 function isWeekendDate(dateStr) {
   if (!dateStr || typeof dateStr !== 'string') return false;
-  const parts = dateStr.split('-');
-  if (parts.length < 3) return false;
-  const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
-  const day = d.getDay(); // 0 是周日, 6 是周六
-  return day === 0 || day === 6;
+  return holidays.isOffDay(dateStr);
+}
+
+function isOffDay(dateStr) {
+  return holidays.isOffDay(dateStr);
+}
+
+function isWorkday(dateStr) {
+  return holidays.isWorkday(dateStr);
+}
+
+function getDayInfo(dateStr) {
+  return holidays.getDayInfo(dateStr);
 }
 
 /**
@@ -195,11 +219,13 @@ function calculateExpectedSignOut(signInTimeStr, customSettings, dateStr) {
   if (!signInTimeStr) return null;
 
   if (dateStr && isWeekendDate(dateStr)) {
+    const dayInfo = holidays.getDayInfo(dateStr);
+    const label = dayInfo.type === 'holiday' ? `${dayInfo.name}加班` : '周末加班';
     return {
-      expectedSignOutTime: '周末加班',
+      expectedSignOutTime: label,
       expectedOutMins: 0,
       status: 'weekend',
-      note: '周末出勤全计加班',
+      note: `${dayInfo.name || '非工作日'}出勤全计加班`,
       effectiveStartMins: timeStrToMinutes(signInTimeStr),
       earliestFlexTime: '--:--',
       latestFlexTime: '--:--'
@@ -356,23 +382,33 @@ function getWeekdayOvertimeStartTime(expectedOutMins, customSettings) {
 function evaluateRecord(rawRecord, customSettings) {
   const settings = customSettings || getSettings();
   const record = Object.assign({}, rawRecord);
-  const isWeekend = isWeekendDate(record.date);
+  const dayInfo = holidays.getDayInfo(record.date);
+  const isWeekend = dayInfo.isOffDay;
   record.isWeekend = isWeekend;
+  record.dayType = dayInfo.type; // 'holiday' | 'workday_makeup' | 'weekend' | 'workday'
+  record.dayTypeName = dayInfo.name; // '国庆节' | '调休上班' | '周末' | '工作日'
+  record.holidayBadge = dayInfo.badge; // '休' | '班' | ''
 
   const baseStartMins = timeStrToMinutes(settings.baseStartTime); // 08:30 (510)
   const earliestFlexMins = baseStartMins - settings.startFlexMinutes; // 08:00 (480)
   const latestFlexMins = baseStartMins + settings.startFlexMinutes; // 09:00 (540)
   const restMinutes = typeof settings.weekdayRestMinutes === 'number' ? settings.weekdayRestMinutes : 60;
+  const restText = formatRestMinutes(restMinutes);
+  record.restDurationText = restText;
+  record.overtimeRuleHint = isWeekend ? '全额计入' : `休息${restText}后起算`;
+  record.overtimeColLabel = isWeekend ? '加班(全额计)' : `加班(休息${restText}起)`;
 
-  // 1. 周末考勤计算
+  // 1. 周末及节假日等非工作日考勤计算 (全天出勤全额计加班)
   if (isWeekend) {
-    record.expectedSignOutTime = '周末加班';
+    const isHoliday = dayInfo.type === 'holiday';
+    const dayName = isHoliday ? dayInfo.name : '周末';
+    record.expectedSignOutTime = `${dayName}加班`;
     record.expectedOutMins = 0;
     record.overtimeStartHint = '全天计加班(含中午晚上休息)';
 
     if (record.signInTime) {
-      record.signInStatus = 'weekend';
-      record.signInStatusText = '周末打卡';
+      record.signInStatus = isHoliday ? 'holiday' : 'weekend';
+      record.signInStatusText = `${dayName}打卡`;
       record.signInTagType = 'accent';
     } else {
       record.signInStatus = 'none';
@@ -385,12 +421,12 @@ function evaluateRecord(rawRecord, customSettings) {
       record.overtimeMinutes = overtimeMins;
       record.overtimeText = formatDuration(overtimeMins);
       record.overtimeHours = formatHoursDecimal(overtimeMins);
-      record.workMinutes = overtimeMins; // 周末出勤全计为加班工时
+      record.workMinutes = overtimeMins; // 周末及节假日出勤全计为加班工时
       record.workText = formatDuration(overtimeMins);
       record.workHours = formatHoursDecimal(overtimeMins);
 
-      record.signOutStatus = 'weekend_overtime';
-      record.signOutStatusText = `周末加班 ${record.overtimeText}`;
+      record.signOutStatus = isHoliday ? 'holiday_overtime' : 'weekend_overtime';
+      record.signOutStatusText = `${dayName}加班 ${record.overtimeText}`;
       record.signOutTagType = 'accent';
     } else {
       record.signOutStatus = 'none';
@@ -404,20 +440,20 @@ function evaluateRecord(rawRecord, customSettings) {
     }
 
     if (!record.signInTime && !record.signOutTime) {
-      record.summaryStatus = 'weekend_off';
-      record.summaryStatusText = '周末休息';
+      record.summaryStatus = isHoliday ? 'holiday_off' : 'weekend_off';
+      record.summaryStatusText = `${dayName}休息`;
     } else if (record.signInTime && !record.signOutTime) {
       record.summaryStatus = 'working';
-      record.summaryStatusText = '周末加班中';
+      record.summaryStatusText = `${dayName}加班中`;
     } else {
-      record.summaryStatus = 'weekend_overtime';
-      record.summaryStatusText = `周末加班 (${record.overtimeText})`;
+      record.summaryStatus = isHoliday ? 'holiday_overtime' : 'weekend_overtime';
+      record.summaryStatusText = `${dayName}加班 (${record.overtimeText})`;
     }
 
     return record;
   }
 
-  // 2. 工作日考勤计算 (周一至周五)
+  // 2. 工作日考勤计算 (周一至周五及调休上班日)
   if (record.signInTime) {
     const expected = calculateExpectedSignOut(record.signInTime, settings, record.date);
     record.expectedSignOutTime = expected.expectedSignOutTime;
@@ -438,17 +474,17 @@ function evaluateRecord(rawRecord, customSettings) {
       record.signInTagType = 'success';
     }
 
-    // 工作日加班起算点：到了下班时间后休息1小时
+    // 工作日加班起算点：到了下班时间后休息指定时长 (默认1h)
     const otStartMins = record.expectedOutMins + restMinutes;
     record.overtimeStartTime = minutesToTimeStr(otStartMins);
-    record.overtimeStartHint = `满工时(${record.expectedSignOutTime})后休息${restMinutes}分钟起算 (即${record.overtimeStartTime})`;
+    record.overtimeStartHint = `满工时(${record.expectedSignOutTime})后休息${restText}起算 (即${record.overtimeStartTime})`;
   } else {
     record.signInStatus = 'none';
     record.signInStatusText = '未打卡';
     record.signInTagType = 'default';
     const defaultExpectedOut = timeStrToMinutes(settings.baseEndTime);
     record.overtimeStartTime = minutesToTimeStr(defaultExpectedOut + restMinutes);
-    record.overtimeStartHint = `下班休息${restMinutes}分钟起算 (即${record.overtimeStartTime})`;
+    record.overtimeStartHint = `下班休息${restText}起算 (即${record.overtimeStartTime})`;
   }
 
   // 计算工作日工作时长与加班时长
@@ -724,6 +760,10 @@ module.exports = {
   DEFAULT_SETTINGS,
   STORAGE_KEYS,
   isWeekendDate,
+  isOffDay,
+  isWorkday,
+  getDayInfo,
+  formatRestMinutes,
   timeStrToMinutes,
   minutesToTimeStr,
   formatDuration,
