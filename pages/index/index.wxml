@@ -14,9 +14,22 @@
     <view class="time-display">
       <text class="digital-time">{{currentTimeText}}</text>
     </view>
+
+    <!-- 工作状态药丸 (如: 凌晨休息时段 / 今日尚未打卡 / 正常工作中 等) -->
     <view class="state-pill state-{{workState}}">
       <view class="state-dot"></view>
       <text class="state-text">{{workStateText}}</text>
+    </view>
+
+    <!-- 今日新增工资进度 (点击卡片可快速设定目标月薪) -->
+    <view class="salary-card" bindtap="onTapEditSalary" hover-class="salary-card-hover">
+      <view class="salary-card-header">
+        <text class="salary-card-label">今日新增工资进度</text>
+      </view>
+      <view class="salary-amount-row">
+        <text class="salary-currency">¥</text>
+        <text class="salary-amount">{{todaySalaryText || '0.00'}}</text>
+      </view>
     </view>
   </view>
 

@@ -114,6 +114,7 @@ Page({
 
     const clockData = this.computeClockData(now);
     const workStatus = this.computeWorkStatus(record, settings, isWeekend, now);
+    const salaryData = attendance.calculateTodaySalary(record, settings, now);
 
     // 单次合并 setData，彻底杜绝首屏多次重绘造成的卡顿与白屏延迟
     this.setData(Object.assign({
@@ -123,7 +124,11 @@ Page({
       dayType: dayInfo.type,
       dayTypeName: dayInfo.name,
       settings,
-      record
+      record,
+      todaySalaryText: salaryData.todaySalaryText,
+      salaryProgressPercent: salaryData.progressPercent,
+      todayDailySalaryText: salaryData.dailySalaryText,
+      todayHourlySalaryText: salaryData.hourlySalaryText
     }, clockData, workStatus));
   },
 
@@ -294,8 +299,17 @@ Page({
     const pad = n => (n < 10 ? '0' + n : '' + n);
     const currentTimeText = `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
 
-    // 每秒仅更新时钟文本，极大降低 JSBridge 跨线程传输消耗
+    // 每秒仅更新时钟文本与打卡中工资跳动，极大降低 JSBridge 跨线程传输消耗
     const patch = { currentTimeText };
+
+    const { record, settings, isWeekend } = this.data;
+
+    // 当处于工作中（已打上班卡但未打下班卡）时，每秒实时更新工资进度（金额动态增长）
+    if (record && record.signInTime && !record.signOutTime) {
+      const salaryData = attendance.calculateTodaySalary(record, settings, now);
+      patch.todaySalaryText = salaryData.todaySalaryText;
+      patch.salaryProgressPercent = salaryData.progressPercent;
+    }
 
     // 跨分钟整点更新工作状态倒计时与时长推算
     if (seconds === 0) {
@@ -304,7 +318,6 @@ Page({
         this.refreshData();
         return;
       }
-      const { record, settings, isWeekend } = this.data;
       if (record && settings) {
         Object.assign(patch, this.computeWorkStatus(record, settings, isWeekend, now));
       }
@@ -429,9 +442,12 @@ Page({
     const evaluated = attendance.saveDailyRecord(newRecord, settings);
     const now = new Date();
     const workStatus = this.computeWorkStatus(evaluated, settings, isWeekend, now);
+    const salaryData = attendance.calculateTodaySalary(evaluated, settings, now);
 
     this.setData(Object.assign({
-      record: evaluated
+      record: evaluated,
+      todaySalaryText: salaryData.todaySalaryText,
+      salaryProgressPercent: salaryData.progressPercent
     }, workStatus));
 
     // 生效后弹出的对话框已彻底删除！0 弹窗打扰直接生效！
@@ -622,9 +638,12 @@ Page({
 
     const evaluated = attendance.saveDailyRecord(newRecord, settings);
     const workStatus = this.computeWorkStatus(evaluated, settings, isWeekend, now);
+    const salaryData = attendance.calculateTodaySalary(evaluated, settings, now);
 
     this.setData(Object.assign({
-      record: evaluated
+      record: evaluated,
+      todaySalaryText: salaryData.todaySalaryText,
+      salaryProgressPercent: salaryData.progressPercent
     }, workStatus));
   },
 
@@ -639,9 +658,12 @@ Page({
     const evaluated = attendance.saveDailyRecord(newRecord, settings);
     const now = new Date();
     const workStatus = this.computeWorkStatus(evaluated, settings, isWeekend, now);
+    const salaryData = attendance.calculateTodaySalary(evaluated, settings, now);
 
     this.setData(Object.assign({
-      record: evaluated
+      record: evaluated,
+      todaySalaryText: salaryData.todaySalaryText,
+      salaryProgressPercent: salaryData.progressPercent
     }, workStatus));
 
     let content = `下班打卡成功：${timeStr}`;
@@ -747,6 +769,42 @@ Page({
   goToRecords() {
     wx.switchTab({
       url: '/pages/records/records'
+    });
+  },
+
+  /**
+   * 点击设置/修改目标月薪
+   */
+  onTapEditSalary() {
+    const currentSalary = (this.data.settings && this.data.settings.monthlySalary) || 10000;
+    wx.showModal({
+      title: '设定目标月薪',
+      editable: true,
+      placeholderText: '请输入目标月薪 (元)',
+      content: String(currentSalary),
+      confirmText: '保存',
+      confirmColor: '#d97706',
+      cancelText: '取消',
+      success: (res) => {
+        if (res.confirm) {
+          const raw = res.content ? res.content.trim() : '';
+          const num = parseFloat(raw);
+          if (isNaN(num) || num <= 0 || num > 10000000) {
+            wx.showToast({
+              title: '请输入有效金额',
+              icon: 'none'
+            });
+            return;
+          }
+          const monthlySalary = Math.round(num);
+          attendance.saveSettings({ monthlySalary });
+          this.refreshData();
+          wx.showToast({
+            title: `月薪已设为 ¥${monthlySalary}`,
+            icon: 'success'
+          });
+        }
+      }
     });
   },
 

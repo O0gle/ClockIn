@@ -179,6 +179,11 @@
   padding: 12rpx 20rpx;
 }
 
+.row-switch {
+  transform: scale(0.85);
+  transform-origin: right center;
+}
+
 .row-val {
   font-size: 28rpx;
   font-weight: 600;

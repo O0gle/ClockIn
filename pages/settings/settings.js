@@ -15,7 +15,9 @@ Page({
       lunchStart: '11:40',
       lunchEnd: '13:40',
       weekdayRestMinutes: 60,
-      standardWorkMinutes: 450
+      standardWorkMinutes: 450,
+      monthlySalary: 10000,
+      includeOvertimeSalary: false
     },
 
     // 弹性区间选择项
@@ -185,6 +187,43 @@ Page({
     const mins = this.data.restOptions[idx];
     const settings = Object.assign({}, this.data.settings, { weekdayRestMinutes: mins });
     this.setData({ restIndex: idx });
+    this.updateAndSave(settings);
+  },
+
+  // 8. 修改目标月薪
+  onMonthlySalaryTap() {
+    const currentSalary = (this.data.settings && this.data.settings.monthlySalary) || 10000;
+    wx.showModal({
+      title: '设定目标月薪',
+      editable: true,
+      placeholderText: '请输入目标月薪 (元)',
+      content: String(currentSalary),
+      confirmText: '保存',
+      confirmColor: '#d97706',
+      cancelText: '取消',
+      success: (res) => {
+        if (res.confirm) {
+          const raw = res.content ? res.content.trim() : '';
+          const num = parseFloat(raw);
+          if (isNaN(num) || num <= 0 || num > 10000000) {
+            wx.showToast({
+              title: '请输入有效金额',
+              icon: 'none'
+            });
+            return;
+          }
+          const monthlySalary = Math.round(num);
+          const settings = Object.assign({}, this.data.settings, { monthlySalary });
+          this.updateAndSave(settings);
+        }
+      }
+    });
+  },
+
+  // 9. 切换加班工资是否累加
+  onIncludeOvertimeSalaryChange(e) {
+    const includeOvertimeSalary = !!e.detail.value;
+    const settings = Object.assign({}, this.data.settings, { includeOvertimeSalary });
     this.updateAndSave(settings);
   },
 

@@ -11,7 +11,9 @@ const DEFAULT_SETTINGS = {
   lunchStart: '11:40',         // 午休开始时间
   lunchEnd: '13:40',           // 午休结束时间 (120分钟，工作日不计入工作时长)
   weekdayRestMinutes: 60,      // 工作日下班后休息时长 (默认休息1小时后开始计算加班)
-  standardWorkMinutes: 450     // 标准工作时长 7.5小时 (450分钟)
+  standardWorkMinutes: 450,    // 标准工作时长 7.5小时 (450分钟)
+  monthlySalary: 10000,        // 目标月薪 (元，用于今日新增工资进度换算)
+  includeOvertimeSalary: false // 加班工资是否进行累加 (默认不累加)
 };
 
 const STORAGE_KEYS = {
@@ -188,17 +190,180 @@ function getSettings() {
 }
 
 /**
- * 保存考勤设置
+ * 保存考勤设置 (支持增量合并)
  */
 function saveSettings(settings) {
   try {
     if (typeof wx !== 'undefined' && wx.setStorageSync) {
       const storageKey = getStorageKey(STORAGE_KEYS.SETTINGS);
-      wx.setStorageSync(storageKey, settings);
+      const current = getSettings();
+      const merged = Object.assign({}, current, settings);
+      wx.setStorageSync(storageKey, merged);
+      return merged;
     }
   } catch (e) {
     console.error('saveSettings error', e);
   }
+  return Object.assign({}, DEFAULT_SETTINGS, settings);
+}
+
+/**
+ * 计算今日实时新增工资进度
+ * - 规则：
+ *   - 目标月薪 (默认 10,000 元)，按国家人社部法定的月计薪天数 21.75 天折算日薪与时薪；
+ *   - 日薪 = monthlySalary / 21.75
+ *   - 标准工时 7.5 小时 (450 分钟 = 27,000 秒)，时薪 = 日薪 / 7.5
+ *   - 工作日：上班打卡后随有效在岗时间实时累加 (扣除午休 11:40~13:40)；
+ *     满 7.5 小时后获得全额日薪，休息期不计薪，进入加班后按时薪继续累加；
+ *   - 周末/节假日：全天出勤计加班，按出勤工时 × 时薪实时累加；
+ *   - 下班打卡后定格今日最终结算金额。
+ *
+ * @param {Object} record - 今日打卡记录
+ * @param {Object} customSettings - 考勤设置
+ * @param {Date} now - 当前时间
+ * @returns {Object} { todaySalary, todaySalaryText, progressPercent, dailySalary, dailySalaryText, hourlySalary, monthlySalary }
+ */
+function calculateTodaySalary(record, customSettings, now = new Date()) {
+  const settings = customSettings || getSettings();
+  const monthlySalary = typeof settings.monthlySalary === 'number' && settings.monthlySalary > 0
+    ? settings.monthlySalary
+    : 10000;
+  const includeOvertimeSalary = !!settings.includeOvertimeSalary;
+  const workDaysPerMonth = 21.75;
+  const dailySalary = monthlySalary / workDaysPerMonth;
+  const standardHours = 7.5;
+  const hourlySalary = dailySalary / standardHours;
+  const perSecondSalary = dailySalary / (standardHours * 3600);
+
+  const dailySalaryText = dailySalary.toFixed(2);
+  const hourlySalaryText = hourlySalary.toFixed(2);
+
+  if (!record || !record.signInTime) {
+    return {
+      todaySalary: 0,
+      todaySalaryText: '0.00',
+      progressPercent: 0,
+      dailySalary: Number(dailySalaryText),
+      dailySalaryText,
+      hourlySalary: Number(hourlySalaryText),
+      hourlySalaryText,
+      monthlySalary,
+      includeOvertimeSalary
+    };
+  }
+
+  const isWeekend = isWeekendDate(record.date || getTodayDateStr(now));
+  let todaySalary = 0;
+  let creditedSeconds = 0;
+
+  if (record.signOutTime) {
+    // 已经完成下班打卡，固定结算
+    if (isWeekend) {
+      if (includeOvertimeSalary) {
+        const otMins = record.overtimeMinutes || record.workMinutes || 0;
+        todaySalary = (otMins / 60) * hourlySalary;
+        creditedSeconds = otMins * 60;
+      } else {
+        todaySalary = 0;
+        creditedSeconds = 0;
+      }
+    } else {
+      const workMins = record.workMinutes || 0;
+      const baseEarned = Math.min(dailySalary, (workMins / (standardHours * 60)) * dailySalary);
+      if (includeOvertimeSalary) {
+        const otMins = record.overtimeMinutes || 0;
+        const otEarned = (otMins / 60) * hourlySalary;
+        todaySalary = baseEarned + otEarned;
+      } else {
+        todaySalary = baseEarned;
+      }
+      creditedSeconds = workMins * 60;
+    }
+  } else {
+    // 正在工作中（根据当前秒数实时动态计算）
+    const inParts = record.signInTime.split(':').map(Number);
+    const inSeconds = inParts[0] * 3600 + inParts[1] * 60;
+    const nowSeconds = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+
+    if (nowSeconds <= inSeconds) {
+      todaySalary = 0;
+      creditedSeconds = 0;
+    } else if (isWeekend) {
+      // 周末/法定节假日：全天出勤算加班，判断是否开启加班累加
+      if (includeOvertimeSalary) {
+        creditedSeconds = nowSeconds - inSeconds;
+        todaySalary = (creditedSeconds / 3600) * hourlySalary;
+      } else {
+        creditedSeconds = 0;
+        todaySalary = 0;
+      }
+    } else {
+      // 工作日：需扣除午休并处理弹性区间
+      const baseStartMins = timeStrToMinutes(settings.baseStartTime || '08:30');
+      const earliestFlexMins = baseStartMins - (settings.startFlexMinutes || 30);
+      const earliestFlexSec = earliestFlexMins * 60;
+
+      // 弹性工作最早计入时间
+      const effectiveStartSec = Math.max(inSeconds, earliestFlexSec);
+
+      if (nowSeconds <= effectiveStartSec) {
+        creditedSeconds = 0;
+        todaySalary = 0;
+      } else {
+        const totalSpanSec = nowSeconds - effectiveStartSec;
+
+        // 午休扣除
+        const lunchStartParts = (settings.lunchStart || '11:40').split(':').map(Number);
+        const lunchEndParts = (settings.lunchEnd || '13:40').split(':').map(Number);
+        const lunchStartSec = lunchStartParts[0] * 3600 + lunchStartParts[1] * 60;
+        const lunchEndSec = lunchEndParts[0] * 3600 + lunchEndParts[1] * 60;
+
+        const overlapStart = Math.max(effectiveStartSec, lunchStartSec);
+        const overlapEnd = Math.min(nowSeconds, lunchEndSec);
+        const lunchOverlapSec = Math.max(0, overlapEnd - overlapStart);
+
+        const effectiveWorkedSec = Math.max(0, totalSpanSec - lunchOverlapSec);
+        const standardWorkSec = standardHours * 3600; // 27000秒 (7.5h)
+
+        const expectedOutMins = record.expectedOutMins;
+        const restMins = typeof settings.weekdayRestMinutes === 'number' ? settings.weekdayRestMinutes : 60;
+        const otStartSec = (expectedOutMins ? expectedOutMins * 60 : (18 * 3600)) + (restMins * 60);
+
+        if (effectiveWorkedSec <= standardWorkSec) {
+          // 尚未达到 7.5 小时标准工时
+          creditedSeconds = effectiveWorkedSec;
+          todaySalary = creditedSeconds * perSecondSalary;
+        } else {
+          // 已满 7.5 小时标准工时，保底获得全额日薪
+          creditedSeconds = standardWorkSec;
+          const baseEarned = dailySalary;
+
+          if (includeOvertimeSalary && nowSeconds > otStartSec) {
+            // 已开启加班累加，且已过休息缓冲期，进入加班累计
+            const otSec = nowSeconds - otStartSec;
+            todaySalary = baseEarned + (otSec / 3600) * hourlySalary;
+          } else {
+            // 未开启加班累加，或在下班休息缓冲期内，获得全部日薪（不额外累加加班）
+            todaySalary = baseEarned;
+          }
+        }
+      }
+    }
+  }
+
+  const progressPercent = Math.min(100, Math.max(0, Math.round((creditedSeconds / (standardHours * 3600)) * 100)));
+
+  return {
+    todaySalary: Number(todaySalary.toFixed(2)),
+    todaySalaryText: todaySalary.toFixed(2),
+    progressPercent,
+    dailySalary: Number(dailySalaryText),
+    dailySalaryText,
+    hourlySalary: Number(hourlySalaryText),
+    hourlySalaryText,
+    monthlySalary,
+    includeOvertimeSalary
+  };
 }
 
 /**
@@ -770,6 +935,7 @@ module.exports = {
   formatHoursDecimal,
   getSettings,
   saveSettings,
+  calculateTodaySalary,
   calculateExpectedSignOut,
   calculateWorkDuration,
   calculateOvertimeDuration,

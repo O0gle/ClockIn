@@ -149,7 +149,28 @@
       </picker>
     </view>
 
-    <!-- 8. 周末加班规则说明 -->
+    <!-- 8. 目标月薪 (用于今日工资进度换算) -->
+    <view class="setting-row" bindtap="onMonthlySalaryTap">
+      <view class="row-left">
+        <text class="row-title">目标月薪基准</text>
+        <text class="row-desc">按法定21.75天折算，换算今日新增工资进度</text>
+      </view>
+      <view class="row-picker">
+        <text class="row-val">¥{{settings.monthlySalary || 10000}}</text>
+        <text class="row-arrow">›</text>
+      </view>
+    </view>
+
+    <!-- 9. 加班工资是否累加 (默认不累加) -->
+    <view class="setting-row">
+      <view class="row-left">
+        <text class="row-title">累加加班工资</text>
+        <text class="row-desc">默认不累加；开启后加班工时将继续累加今日工资</text>
+      </view>
+      <switch class="row-switch" checked="{{settings.includeOvertimeSalary}}" color="#2563eb" bindchange="onIncludeOvertimeSalaryChange" />
+    </view>
+
+    <!-- 10. 周末加班规则说明 -->
     <view class="setting-row row-weekend-rule">
       <view class="row-left">
         <text class="row-title text-purple">周六周日加班规则</text>
