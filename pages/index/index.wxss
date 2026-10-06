@@ -140,7 +140,7 @@
 .salary-amount {
   font-size: 52rpx;
   font-weight: 800;
-  color: #1e293b;
+  color: #d97706;
   letter-spacing: 1rpx;
   font-variant-numeric: tabular-nums;
   font-family: -apple-system, BlinkMacSystemFont, 'DIN Alternate', 'SF Pro Display', sans-serif;
