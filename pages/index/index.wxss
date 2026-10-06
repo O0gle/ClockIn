@@ -129,11 +129,12 @@
 }
 
 .salary-currency {
-  font-size: 32rpx;
-  font-weight: 700;
+  font-size: 52rpx;
+  font-weight: 800;
   color: #d97706;
-  margin-right: 4rpx;
+  margin-right: 6rpx;
   font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+  line-height: 1.1;
 }
 
 .salary-amount {
