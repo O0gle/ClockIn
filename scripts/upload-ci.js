@@ -20,13 +20,36 @@ const projectConfig = JSON.parse(
   fs.readFileSync(path.join(projectRoot, 'project.config.json'), 'utf8')
 );
 
-const appid = process.env.MP_APPID || projectConfig.appid;
-// 默认读取 mp 后台下载的原文件名：private.<appid>.key，也兼容改名为 private.key
+// 优先读取本地私有配置 project.private.config.json（不入库），兼容开源 project.config.json 占位 AppID
+let privateConfig = {};
+const privateConfigPath = path.join(projectRoot, 'project.private.config.json');
+if (fs.existsSync(privateConfigPath)) {
+  try {
+    privateConfig = JSON.parse(fs.readFileSync(privateConfigPath, 'utf8'));
+  } catch (e) {}
+}
+
+const appid =
+  process.env.MP_APPID ||
+  privateConfig.appid ||
+  (projectConfig.appid && projectConfig.appid !== 'touristappid' ? projectConfig.appid : '');
+
+// 自动检测目录下 private*.key 密钥文件，优先匹配当前 AppID
+let detectedKeyPath = '';
+try {
+  const allFiles = fs.readdirSync(projectRoot);
+  const matchedKey =
+    allFiles.find((f) => f === `private.${appid}.key`) ||
+    allFiles.find((f) => f === 'private.key') ||
+    allFiles.find((f) => f.startsWith('private.') && f.endsWith('.key'));
+  if (matchedKey) {
+    detectedKeyPath = path.join(projectRoot, matchedKey);
+  }
+} catch (e) {}
+
 const privateKeyPath =
   process.env.MP_KEY ||
-  [path.join(projectRoot, `private.${appid}.key`), path.join(projectRoot, 'private.key')].find(
-    (p) => fs.existsSync(p)
-  ) ||
+  detectedKeyPath ||
   path.join(projectRoot, `private.${appid}.key`);
 
 // 版本号自增处理：末位版本号递增 1

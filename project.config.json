@@ -25,6 +25,10 @@
         "value": ".workbuddy"
       },
       {
+        "type": "glob",
+        "value": "private*.key"
+      },
+      {
         "type": "file",
         "value": "private.key"
       }
