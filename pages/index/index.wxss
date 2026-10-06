@@ -129,7 +129,7 @@
 }
 
 .salary-currency {
-  font-size: 52rpx;
+  font-size: 64rpx;
   font-weight: 800;
   color: #d97706;
   margin-right: 6rpx;
@@ -138,7 +138,7 @@
 }
 
 .salary-amount {
-  font-size: 52rpx;
+  font-size: 64rpx;
   font-weight: 800;
   color: #d97706;
   letter-spacing: 1rpx;
