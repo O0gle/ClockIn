@@ -85,7 +85,7 @@
   font-family: -apple-system, BlinkMacSystemFont, 'DIN Alternate', 'SF Pro Display', sans-serif;
 }
 
-/* 今日新增工资进度 (方案A: 扁平呼吸感，去黄框，与时钟色彩统一) */
+/* 今日新增工资进度 (方案一: 单点金属质感金渐变提亮，扁平呼吸感，去黄框) */
 .salary-card {
   box-sizing: border-box;
   margin-top: 8rpx;
@@ -127,18 +127,24 @@
 }
 
 .salary-currency {
-  font-size: 52rpx;
+  font-size: 56rpx;
   font-weight: 800;
-  color: #0f172a;
+  color: #d97706;
+  background: linear-gradient(135deg, #f59e0b 0%, #b45309 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
   margin-right: 6rpx;
   font-family: -apple-system, BlinkMacSystemFont, sans-serif;
   line-height: 1.1;
 }
 
 .salary-amount {
-  font-size: 52rpx;
+  font-size: 56rpx;
   font-weight: 800;
-  color: #0f172a;
+  color: #d97706;
+  background: linear-gradient(135deg, #f59e0b 0%, #b45309 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
   letter-spacing: 1rpx;
   font-variant-numeric: tabular-nums;
   font-family: -apple-system, BlinkMacSystemFont, 'DIN Alternate', 'SF Pro Display', sans-serif;

@@ -21,10 +21,10 @@
       <text class="state-text">{{workStateText}}</text>
     </view>
 
-    <!-- 今日新增工资进度 (点击卡片可快速设定目标月薪) -->
+    <!-- 今日新增工资进度 (方案一: 点击卡片可快速设定目标月薪) -->
     <view class="salary-card" bindtap="onTapEditSalary" hover-class="salary-card-hover">
       <view class="salary-card-header">
-        <text class="salary-card-label">今日新增工资进度</text>
+        <text class="salary-card-label">今日已到账窝囊费</text>
       </view>
       <view class="salary-amount-row">
         <text class="salary-currency">¥</text>

@@ -773,9 +773,21 @@ Page({
   },
 
   /**
-   * 点击设置/修改目标月薪
+   * 双击设置/修改目标月薪 (防误触，350ms内双击触发)
    */
   onTapEditSalary() {
+    const now = Date.now();
+    const lastTap = this.lastSalaryTapTime || 0;
+    this.lastSalaryTapTime = now;
+
+    if (now - lastTap < 350) {
+      this.lastSalaryTapTime = 0; // 重置防止多次连续触发
+      wx.vibrateShort({ type: 'light' });
+      this.openEditSalaryModal();
+    }
+  },
+
+  openEditSalaryModal() {
     const currentSalary = (this.data.settings && this.data.settings.monthlySalary) || 10000;
     wx.showModal({
       title: '设定目标月薪',
