@@ -1,5 +1,6 @@
 // pages/index/index.js
 const attendance = require('../../utils/attendance.js');
+const { calculateSalaryEquivalent } = require('../../utils/salaryGoods.js');
 
 Page({
   data: {
@@ -42,7 +43,11 @@ Page({
     pressRemaining: 5,
 
     // 规则折叠说明
-    showRuleDetail: false
+    showRuleDetail: false,
+
+    // 窝囊费等价物
+    salaryGoodsText: '',
+    salaryGoodsIcon: ''
   },
 
   timer: null,
@@ -115,6 +120,7 @@ Page({
     const clockData = this.computeClockData(now);
     const workStatus = this.computeWorkStatus(record, settings, isWeekend, now);
     const salaryData = attendance.calculateTodaySalary(record, settings, now);
+    const salaryGoods = calculateSalaryEquivalent(salaryData.todaySalary);
 
     // 单次合并 setData，彻底杜绝首屏多次重绘造成的卡顿与白屏延迟
     this.setData(Object.assign({
@@ -128,7 +134,9 @@ Page({
       todaySalaryText: salaryData.todaySalaryText,
       salaryProgressPercent: salaryData.progressPercent,
       todayDailySalaryText: salaryData.dailySalaryText,
-      todayHourlySalaryText: salaryData.hourlySalaryText
+      todayHourlySalaryText: salaryData.hourlySalaryText,
+      salaryGoodsText: salaryGoods.text,
+      salaryGoodsIcon: salaryGoods.icon
     }, clockData, workStatus));
   },
 
@@ -304,11 +312,16 @@ Page({
 
     const { record, settings, isWeekend } = this.data;
 
-    // 当处于工作中（已打上班卡但未打下班卡）时，每秒实时更新工资进度（金额动态增长）
+    // 当处于工作中（已打上班卡但未打下班卡）时，每秒实时更新工资进度（金额动态增长）与等价物
     if (record && record.signInTime && !record.signOutTime) {
       const salaryData = attendance.calculateTodaySalary(record, settings, now);
       patch.todaySalaryText = salaryData.todaySalaryText;
       patch.salaryProgressPercent = salaryData.progressPercent;
+      const salaryGoods = calculateSalaryEquivalent(salaryData.todaySalary);
+      if (salaryGoods.text !== this.data.salaryGoodsText) {
+        patch.salaryGoodsText = salaryGoods.text;
+        patch.salaryGoodsIcon = salaryGoods.icon;
+      }
     }
 
     // 跨分钟整点更新工作状态倒计时与时长推算
@@ -443,11 +456,14 @@ Page({
     const now = new Date();
     const workStatus = this.computeWorkStatus(evaluated, settings, isWeekend, now);
     const salaryData = attendance.calculateTodaySalary(evaluated, settings, now);
+    const salaryGoods = calculateSalaryEquivalent(salaryData.todaySalary);
 
     this.setData(Object.assign({
       record: evaluated,
       todaySalaryText: salaryData.todaySalaryText,
-      salaryProgressPercent: salaryData.progressPercent
+      salaryProgressPercent: salaryData.progressPercent,
+      salaryGoodsText: salaryGoods.text,
+      salaryGoodsIcon: salaryGoods.icon
     }, workStatus));
 
     // 生效后弹出的对话框已彻底删除！0 弹窗打扰直接生效！
@@ -639,11 +655,14 @@ Page({
     const evaluated = attendance.saveDailyRecord(newRecord, settings);
     const workStatus = this.computeWorkStatus(evaluated, settings, isWeekend, now);
     const salaryData = attendance.calculateTodaySalary(evaluated, settings, now);
+    const salaryGoods = calculateSalaryEquivalent(salaryData.todaySalary);
 
     this.setData(Object.assign({
       record: evaluated,
       todaySalaryText: salaryData.todaySalaryText,
-      salaryProgressPercent: salaryData.progressPercent
+      salaryProgressPercent: salaryData.progressPercent,
+      salaryGoodsText: salaryGoods.text,
+      salaryGoodsIcon: salaryGoods.icon
     }, workStatus));
   },
 
@@ -659,11 +678,14 @@ Page({
     const now = new Date();
     const workStatus = this.computeWorkStatus(evaluated, settings, isWeekend, now);
     const salaryData = attendance.calculateTodaySalary(evaluated, settings, now);
+    const salaryGoods = calculateSalaryEquivalent(salaryData.todaySalary);
 
     this.setData(Object.assign({
       record: evaluated,
       todaySalaryText: salaryData.todaySalaryText,
-      salaryProgressPercent: salaryData.progressPercent
+      salaryProgressPercent: salaryData.progressPercent,
+      salaryGoodsText: salaryGoods.text,
+      salaryGoodsIcon: salaryGoods.icon
     }, workStatus));
 
     let content = `下班打卡成功：${timeStr}`;
@@ -748,9 +770,15 @@ Page({
     const evaluated = attendance.saveDailyRecord(updated, settings);
     const now = new Date();
     const workStatus = this.computeWorkStatus(evaluated, settings, this.data.isWeekend, now);
+    const salaryData = attendance.calculateTodaySalary(evaluated, settings, now);
+    const salaryGoods = calculateSalaryEquivalent(salaryData.todaySalary);
 
     this.setData(Object.assign({
       record: evaluated,
+      todaySalaryText: salaryData.todaySalaryText,
+      salaryProgressPercent: salaryData.progressPercent,
+      salaryGoodsText: salaryGoods.text,
+      salaryGoodsIcon: salaryGoods.icon,
       showEditModal: false
     }, workStatus));
 

@@ -30,6 +30,11 @@
         <text class="salary-currency">¥</text>
         <text class="salary-amount">{{todaySalaryText || '0.00'}}</text>
       </view>
+      <!-- 窝囊费等价物趣味换算 -->
+      <view class="salary-goods-badge" wx:if="{{salaryGoodsText}}">
+        <text class="goods-icon">{{salaryGoodsIcon}}</text>
+        <text class="goods-text">{{salaryGoodsText}}</text>
+      </view>
     </view>
   </view>
 
