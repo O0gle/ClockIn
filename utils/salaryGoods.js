@@ -3,18 +3,29 @@
  * 将打工人实时赚取的窝囊费金额，具象化转换为高频消费品或愿望清单
  */
 
-// 阶梯等价物配置表（按单价递增，文案精炼避免小屏手机折行截断）
+// 阶梯等价物配置表（按单价递增，覆盖低中高各档心愿单）
 const SALARY_EQUIVALENTS = [
+  // 1. 基础小确幸 (4 ~ 25元)
   { id: 'ice_lemonade', name: '蜜雪柠檬水', price: 4, icon: '🍋' },
   { id: 'steamed_bun', name: '肉包配豆浆', price: 7, icon: '🥟' },
   { id: 'mcd_poor', name: '麦门穷鬼套餐', price: 13.9, icon: '🍔' },
   { id: 'milktea', name: '霸王茶姬', price: 18, icon: '🧋' },
   { id: 'pork_rice', name: '隆江猪脚饭', price: 25, icon: '🍚' },
+
+  // 2. 日常改善与回血 (33 ~ 260元)
   { id: 'starbucks', name: '星巴克大杯', price: 33, icon: '☕' },
   { id: 'kfc_v50', name: '疯四V50', price: 50, icon: '🍗' },
   { id: 'taxi_freedom', name: '打车回家自由', price: 80, icon: '🚕' },
   { id: 'hotpot', name: '海底捞单人锅', price: 150, icon: '🍲' },
-  { id: 'massage', name: '周末推拿按摩', price: 260, icon: '💆' }
+  { id: 'massage', name: '周末推拿按摩', price: 260, icon: '💆' },
+
+  // 3. 高价值心愿与精神解脱 (298 ~ 1800元)
+  { id: 'steam_game', name: '3A游戏大作', price: 298, icon: '🎮' },
+  { id: 'disney', name: '迪士尼门票', price: 399, icon: '🏰' },
+  { id: 'concert', name: '演唱会看台票', price: 580, icon: '🎫' },
+  { id: 'hotel', name: '周末微度假', price: 888, icon: '🏨' },
+  { id: 'airpods', name: '工位降噪耳机', price: 1399, icon: '🎧' },
+  { id: 'flight', name: '往返海边机票', price: 1800, icon: '✈️' }
 ];
 
 /**
@@ -65,11 +76,10 @@ function calculateSalaryEquivalent(todaySalary) {
     };
   }
 
-  // 5. 超过最高档位（例如日薪很高或加班很久，已破 260+ 元）
-  const count = Math.floor(amount / 50);
+  // 5. 超过最高档位（金额 >= 1800 元）
   return {
-    icon: '🎉',
-    text: `窝囊费已破百！已怒赚${count}份疯四`
+    icon: '👑',
+    text: '今日收益超神！已全额解锁海边度假'
   };
 }
 
