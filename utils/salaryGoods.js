@@ -3,7 +3,7 @@
  * 将打工人实时赚取的窝囊费金额，具象化转换为高频消费品或愿望清单
  */
 
-// 阶梯等价物配置表（按单价递增，覆盖低中高各档心愿单）
+// 阶梯等价物配置表（按单价递增，从 4元小确幸 一直覆盖到 10000元+ 终极自由心愿）
 const SALARY_EQUIVALENTS = [
   // 1. 基础小确幸 (4 ~ 25元)
   { id: 'ice_lemonade', name: '蜜雪柠檬水', price: 4, icon: '🍋' },
@@ -25,7 +25,15 @@ const SALARY_EQUIVALENTS = [
   { id: 'concert', name: '演唱会看台票', price: 580, icon: '🎫' },
   { id: 'hotel', name: '周末微度假', price: 888, icon: '🏨' },
   { id: 'airpods', name: '工位降噪耳机', price: 1399, icon: '🎧' },
-  { id: 'flight', name: '往返海边机票', price: 1800, icon: '✈️' }
+  { id: 'flight', name: '往返海边机票', price: 1800, icon: '✈️' },
+
+  // 4. 万元顶奢与自由图腾 (2599 ~ 10000元)
+  { id: 'ipad', name: '生产力iPad', price: 2599, icon: '📱' },
+  { id: 'chair', name: '人体工学椅', price: 3600, icon: '💺' },
+  { id: 'gpu', name: '顶级光追显卡', price: 4999, icon: '💻' },
+  { id: 'phone', name: '旗舰顶配手机', price: 6999, icon: '📲' },
+  { id: 'brompton', name: '小布折叠车', price: 8888, icon: '🚲' },
+  { id: 'iceland', name: '冰岛极光基金', price: 10000, icon: '🌌' }
 ];
 
 /**
@@ -76,10 +84,10 @@ function calculateSalaryEquivalent(todaySalary) {
     };
   }
 
-  // 5. 超过最高档位（金额 >= 1800 元）
+  // 5. 超过最高档位（日赚金额 >= 10000 元）
   return {
     icon: '👑',
-    text: '今日收益超神！已全额解锁海边度假'
+    text: '日入过万！已解锁冰岛极光自由'
   };
 }
 
