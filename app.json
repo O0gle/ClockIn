@@ -7,7 +7,7 @@
   "lazyCodeLoading": "requiredComponents",
   "window": {
     "navigationBarTextStyle": "black",
-    "navigationBarTitleText": "弹性打卡助手",
+    "navigationBarTitleText": "木木打卡助手",
     "navigationBarBackgroundColor": "#ffffff",
     "backgroundColor": "#f8fafc"
   },
