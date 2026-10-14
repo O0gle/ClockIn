@@ -157,7 +157,7 @@
       <view class="work-summary-left">
         <text class="summary-label">{{isWeekend ? ((dayTypeName && dayTypeName !== '周末' ? dayTypeName : '周末') + '累计加班：') : '实际出勤工时：'}}</text>
         <text class="summary-val">{{isWeekend ? record.overtimeText : record.workText}}</text>
-        <text class="summary-sub">{{isWeekend ? '(中午/晚间休息均已计入)' : '(已扣午休' + (lunchDurationText || '2小时') + ')'}}</text>
+        <text class="summary-sub">{{isWeekend ? '(中午/晚间休息均已计入)' : '(已扣午休' + (lunchDurationText || '2小时') + (record.overtimeMinutes > 0 ? '及下班休息' + (restDurationText || '1h') : '') + ')'}}</text>
       </view>
       <view class="work-status-badge">
         <text class="badge badge-{{record.overtimeMinutes > 0 ? 'accent' : 'success'}}">{{isWeekend ? ((dayTypeName && dayTypeName !== '周末' ? dayTypeName : '周末') + '全额加班') : (record.overtimeMinutes > 0 ? '含工作日加班' : '工时正常')}}</text>

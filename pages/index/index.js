@@ -244,9 +244,12 @@ Page({
         const currentWorkMins = attendance.calculateWorkDuration(record.signInTime, nowTimeStr, settings, record.date);
         elapsedWorkText = attendance.formatDuration(currentWorkMins);
 
-        const restMins = settings.weekdayRestMinutes || 60;
+        const restMins = typeof settings.weekdayRestMinutes === 'number' ? settings.weekdayRestMinutes : 60;
         const restText = attendance.formatRestMinutes(restMins);
         const overtimeStartMins = (expectedOutMins || attendance.timeStrToMinutes(settings.baseEndTime)) + restMins;
+        const targetWorkMins = settings.standardWorkMinutes || 450;
+        const lunchStartMins = attendance.timeStrToMinutes(settings.lunchStart || '11:40');
+        const lunchEndMins = attendance.timeStrToMinutes(settings.lunchEnd || '13:40');
 
         if (nowMins >= overtimeStartMins) {
           // 当前已经在加班时间 (满工时 + 休息指定时长 之后)
@@ -263,13 +266,15 @@ Page({
           workStateText = `已满标准工时 · 休息缓冲中 (离加班还剩 ${restLeft}分钟)`;
           remainingWorkText = '已达标(休息中)';
         } else {
-          // 正常工作中，计算倒计时
+          // 正常工作中，按剩余有效工时计算倒计时 (与左侧“已在岗工作”口径一致，不含午休)
           workState = 'working';
-          workStateText = '正常工作中';
-          if (expectedOutMins) {
-            const diff = expectedOutMins - nowMins;
-            remainingWorkText = diff > 0 ? `距下班还需 ${attendance.formatDuration(diff)}` : '已达标';
+          if (nowMins >= lunchStartMins && nowMins < lunchEndMins) {
+            workStateText = '午休休息中 (工时暂停累计)';
+          } else {
+            workStateText = '正常工作中';
           }
+          const remainWorkMins = Math.max(0, targetWorkMins - currentWorkMins);
+          remainingWorkText = remainWorkMins > 0 ? `距下班还需 ${attendance.formatDuration(remainWorkMins)}` : '已达标';
         }
       }
     } else {

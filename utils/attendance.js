@@ -328,7 +328,11 @@ function calculateTodaySalary(record, customSettings, now = new Date()) {
         const effectiveWorkedSec = Math.max(0, totalSpanSec - lunchOverlapSec);
         const standardWorkSec = standardWorkMinutes * 60; // 默认27000秒 (7.5h)
 
-        const expectedOutMins = record.expectedOutMins;
+        let expectedOutMins = record.expectedOutMins;
+        if (!expectedOutMins && record.signInTime) {
+          const exp = calculateExpectedSignOut(record.signInTime, settings, record.date);
+          expectedOutMins = exp ? exp.expectedOutMins : 0;
+        }
         const restMins = typeof settings.weekdayRestMinutes === 'number' ? settings.weekdayRestMinutes : 60;
         const baseEndSec = timeStrToMinutes(settings.baseEndTime || '18:00') * 60;
         const otStartSec = (expectedOutMins ? expectedOutMins * 60 : baseEndSec) + (restMins * 60);
@@ -411,7 +415,6 @@ function calculateExpectedSignOut(signInTimeStr, customSettings, dateStr) {
   const lunchBreakMins = Math.max(0, lunchEndMins - lunchStartMins); // 120分钟
 
   const targetWorkMins = settings.standardWorkMinutes || 450; // 450分钟 (7.5小时)
-  const totalPresenceMins = targetWorkMins + lunchBreakMins; // 570分钟 (9.5小时)
 
   let effectiveStartMins = signInMins;
   let status = 'normal'; // 'early', 'normal', 'late'
@@ -430,8 +433,23 @@ function calculateExpectedSignOut(signInTimeStr, customSettings, dateStr) {
     note = `迟到${diff}分钟`;
   }
 
-  // 预计下班时间 = 有效打卡时间 + 9.5小时 (7.5h工作 + 2h午休)
-  const expectedOutMins = effectiveStartMins + totalPresenceMins;
+  // 根据有效起算时间与午休区间的相对位置，动态推算满标准工时的预计下班时间：
+  // 1. 午休前打卡：若上午不足以完成标准工时，需跨越整个午休时段 (加上 lunchBreakMins)
+  // 2. 午休期间打卡：午休时段不计工时，实际有效工时自午休结束 (lunchEndMins) 起算满 targetWorkMins
+  // 3. 午休后打卡：当天已无午休扣除，直接自打卡时间起算满 targetWorkMins
+  let expectedOutMins;
+  if (lunchBreakMins > 0 && effectiveStartMins <= lunchStartMins) {
+    const morningWorkMins = lunchStartMins - effectiveStartMins;
+    if (targetWorkMins <= morningWorkMins) {
+      expectedOutMins = effectiveStartMins + targetWorkMins;
+    } else {
+      expectedOutMins = effectiveStartMins + targetWorkMins + lunchBreakMins;
+    }
+  } else if (lunchBreakMins > 0 && effectiveStartMins < lunchEndMins) {
+    expectedOutMins = lunchEndMins + targetWorkMins;
+  } else {
+    expectedOutMins = effectiveStartMins + targetWorkMins;
+  }
   const expectedSignOutTime = minutesToTimeStr(expectedOutMins);
 
   return {
@@ -447,7 +465,7 @@ function calculateExpectedSignOut(signInTimeStr, customSettings, dateStr) {
 
 /**
  * 计算实际工作时长
- * - 工作日：扣除午休 11:40 ~ 13:40 (120分钟)
+ * - 工作日：扣除午休 11:40 ~ 13:40 (120分钟) 及满工时下班后的休息缓冲期 (默认60分钟)
  * - 周末：把中午、晚上的休息时间都计入加班/工作时长 (不扣除午休与晚餐休息)
  */
 function calculateWorkDuration(signInTimeStr, signOutTimeStr, customSettings, dateStr) {
@@ -473,7 +491,7 @@ function calculateWorkDuration(signInTimeStr, signOutTimeStr, customSettings, da
   if (outMins <= effectiveInMins) return 0;
   const totalSpan = outMins - effectiveInMins;
 
-  // 工作日扣除午休重叠时间
+  // 1. 工作日扣除午休重叠时间
   const lunchStartMins = timeStrToMinutes(settings.lunchStart); // 700 (11:40)
   const lunchEndMins = timeStrToMinutes(settings.lunchEnd); // 820 (13:40)
 
@@ -481,7 +499,20 @@ function calculateWorkDuration(signInTimeStr, signOutTimeStr, customSettings, da
   const overlapEnd = Math.min(outMins, lunchEndMins);
   const lunchOverlap = Math.max(0, overlapEnd - overlapStart);
 
-  return Math.max(0, totalSpan - lunchOverlap);
+  // 2. 工作日扣除满标准工时后的下班休息缓冲期 (expectedOutMins ~ expectedOutMins + restMinutes)
+  const expected = calculateExpectedSignOut(signInTimeStr, settings, dateStr);
+  const expectedOutMins = expected ? expected.expectedOutMins : 0;
+  const restMinutes = typeof settings.weekdayRestMinutes === 'number' ? settings.weekdayRestMinutes : 60;
+  let restOverlap = 0;
+  if (expectedOutMins > 0 && restMinutes > 0 && outMins > expectedOutMins) {
+    const restStartMins = Math.max(expectedOutMins, lunchEndMins);
+    const restEndMins = expectedOutMins + restMinutes;
+    const restOverlapStart = Math.max(effectiveInMins, restStartMins);
+    const restOverlapEnd = Math.min(outMins, restEndMins);
+    restOverlap = Math.max(0, restOverlapEnd - restOverlapStart);
+  }
+
+  return Math.max(0, totalSpan - lunchOverlap - restOverlap);
 }
 
 /**
