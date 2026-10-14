@@ -231,7 +231,10 @@ function calculateTodaySalary(record, customSettings, now = new Date()) {
   const includeOvertimeSalary = !!settings.includeOvertimeSalary;
   const workDaysPerMonth = 21.75;
   const dailySalary = monthlySalary / workDaysPerMonth;
-  const standardHours = 7.5;
+  const standardWorkMinutes = typeof settings.standardWorkMinutes === 'number' && settings.standardWorkMinutes > 0
+    ? settings.standardWorkMinutes
+    : 450;
+  const standardHours = standardWorkMinutes / 60;
   const hourlySalary = dailySalary / standardHours;
   const perSecondSalary = dailySalary / (standardHours * 3600);
 
@@ -323,11 +326,12 @@ function calculateTodaySalary(record, customSettings, now = new Date()) {
         const lunchOverlapSec = Math.max(0, overlapEnd - overlapStart);
 
         const effectiveWorkedSec = Math.max(0, totalSpanSec - lunchOverlapSec);
-        const standardWorkSec = standardHours * 3600; // 27000秒 (7.5h)
+        const standardWorkSec = standardWorkMinutes * 60; // 默认27000秒 (7.5h)
 
         const expectedOutMins = record.expectedOutMins;
         const restMins = typeof settings.weekdayRestMinutes === 'number' ? settings.weekdayRestMinutes : 60;
-        const otStartSec = (expectedOutMins ? expectedOutMins * 60 : (18 * 3600)) + (restMins * 60);
+        const baseEndSec = timeStrToMinutes(settings.baseEndTime || '18:00') * 60;
+        const otStartSec = (expectedOutMins ? expectedOutMins * 60 : baseEndSec) + (restMins * 60);
 
         if (effectiveWorkedSec <= standardWorkSec) {
           // 尚未达到 7.5 小时标准工时
@@ -418,7 +422,7 @@ function calculateExpectedSignOut(signInTimeStr, customSettings, dateStr) {
     effectiveStartMins = earliestFlexMins; // 弹性最早从08:00开始计
     status = 'early';
     const diff = earliestFlexMins - signInMins;
-    note = `早到${diff}分钟(弹性自${settings.baseStartTime}前30分起计)`;
+    note = `早到${diff}分钟(弹性自${minutesToTimeStr(earliestFlexMins)}起计)`;
   } else if (signInMins > latestFlexMins) {
     // 晚于09:00
     status = 'late';
@@ -455,18 +459,25 @@ function calculateWorkDuration(signInTimeStr, signOutTimeStr, customSettings, da
 
   if (outMins <= inMins) return 0;
 
-  const totalSpan = outMins - inMins;
-
   // 如果是周末，把中午和晚上的休息时间都计入加班时长 (即不扣除午休)
   if (dateStr && isWeekendDate(dateStr)) {
-    return totalSpan;
+    return outMins - inMins;
   }
+
+  // 工作日早于弹性最早起算点打卡时，按弹性最早时间起算有效工时（与预计下班和日薪口径一致）
+  const baseStartMins = timeStrToMinutes(settings.baseStartTime || '08:30');
+  const startFlexMins = typeof settings.startFlexMinutes === 'number' ? settings.startFlexMinutes : 30;
+  const earliestFlexMins = baseStartMins - startFlexMins;
+  const effectiveInMins = Math.max(inMins, earliestFlexMins);
+
+  if (outMins <= effectiveInMins) return 0;
+  const totalSpan = outMins - effectiveInMins;
 
   // 工作日扣除午休重叠时间
   const lunchStartMins = timeStrToMinutes(settings.lunchStart); // 700 (11:40)
   const lunchEndMins = timeStrToMinutes(settings.lunchEnd); // 820 (13:40)
 
-  const overlapStart = Math.max(inMins, lunchStartMins);
+  const overlapStart = Math.max(effectiveInMins, lunchStartMins);
   const overlapEnd = Math.min(outMins, lunchEndMins);
   const lunchOverlap = Math.max(0, overlapEnd - overlapStart);
 
@@ -625,9 +636,10 @@ function evaluateRecord(rawRecord, customSettings) {
     record.expectedOutMins = expected.expectedOutMins;
 
     const inMins = timeStrToMinutes(record.signInTime);
+    const earliestFlexTimeStr = minutesToTimeStr(earliestFlexMins);
     if (inMins < earliestFlexMins) {
       record.signInStatus = 'early';
-      record.signInStatusText = `早到 (08:00起计)`;
+      record.signInStatusText = `早到 (${earliestFlexTimeStr}起计)`;
       record.signInTagType = 'info';
     } else if (inMins > latestFlexMins) {
       record.signInStatus = 'late';

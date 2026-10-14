@@ -117,7 +117,15 @@ Page({
     const isWeekend = dayInfo.isOffDay;
     const restDurationText = attendance.formatRestMinutes(settings.weekdayRestMinutes || 60);
 
-    const clockData = this.computeClockData(now);
+    const baseStartMins = attendance.timeStrToMinutes(settings.baseStartTime || '08:30');
+    const startFlex = typeof settings.startFlexMinutes === 'number' ? settings.startFlexMinutes : 30;
+    const flexStartRangeText = `${attendance.minutesToTimeStr(baseStartMins - startFlex)} ~ ${attendance.minutesToTimeStr(baseStartMins + startFlex)}`;
+    const stdMins = settings.standardWorkMinutes || 450;
+    const standardWorkHoursShort = `${attendance.formatHoursDecimal(stdMins).replace(/\.0$/, '')}h`;
+    const lunchMins = Math.max(0, attendance.timeStrToMinutes(settings.lunchEnd || '13:40') - attendance.timeStrToMinutes(settings.lunchStart || '11:40'));
+    const lunchDurationText = attendance.formatDuration(lunchMins);
+
+    const clockData = this.computeClockData(now, settings);
     const workStatus = this.computeWorkStatus(record, settings, isWeekend, now);
     const salaryData = attendance.calculateTodaySalary(record, settings, now);
     const salaryGoods = calculateSalaryEquivalent(salaryData.todaySalary);
@@ -127,6 +135,9 @@ Page({
       todayDate: today,
       isWeekend,
       restDurationText,
+      flexStartRangeText,
+      standardWorkHoursShort,
+      lunchDurationText,
       dayType: dayInfo.type,
       dayTypeName: dayInfo.name,
       settings,
@@ -143,7 +154,10 @@ Page({
   /**
    * 计算日期与当前时钟文本
    */
-  computeClockData(now = new Date()) {
+  computeClockData(now = new Date(), customSettings) {
+    const settings = customSettings || this.data.settings || attendance.getSettings();
+    const stdMins = (settings && settings.standardWorkMinutes) || 450;
+    const stdShort = `${attendance.formatHoursDecimal(stdMins).replace(/\.0$/, '')}h`;
     const hours = now.getHours();
     const minutes = now.getMinutes();
     const seconds = now.getSeconds();
@@ -164,8 +178,8 @@ Page({
     const ruleTagText = dayInfo.type === 'holiday'
       ? `${dayInfo.name} · 全天计加班`
       : (dayInfo.type === 'workday_makeup'
-        ? `${dayInfo.name} · 弹性满7.5h`
-        : (isWeekend ? '周末 · 休息全计加班' : '工作日 · 弹性满7.5h'));
+        ? `${dayInfo.name} · 弹性满${stdShort}`
+        : (isWeekend ? '周末 · 休息全计加班' : `工作日 · 弹性满${stdShort}`));
 
     return {
       currentTimeText,
@@ -371,9 +385,10 @@ Page({
 
     // 300 毫秒按压意图识别缓冲区：若 300ms 内抬起则判定为误触/点按，不进入长按
     this.inLongPressDetectTimer = setTimeout(() => {
+      this.inPressStartTime = Date.now();
       this.setData({
         isInPressing: true,
-        inPressPercent: 0,
+        inPressPercent: 100,
         inPressRemaining: 3
       });
 
@@ -382,17 +397,16 @@ Page({
       const totalMs = 3000; // 3 秒
       this.inPressTimer = setInterval(() => {
         const elapsed = Date.now() - this.inPressStartTime;
-        const percent = Math.min(100, Math.floor((elapsed / totalMs) * 100));
         const remaining = Math.max(0, Math.ceil((totalMs - elapsed) / 1000));
 
-        if (remaining !== this.data.inPressRemaining && remaining > 0) {
-          wx.vibrateShort({ type: 'light' });
+        if (remaining !== this.data.inPressRemaining) {
+          if (remaining > 0) {
+            wx.vibrateShort({ type: 'light' });
+          }
+          this.setData({
+            inPressRemaining: remaining
+          });
         }
-
-        this.setData({
-          inPressPercent: percent,
-          inPressRemaining: remaining
-        });
 
         if (elapsed >= totalMs) {
           // 满 3 秒，成功打卡！
@@ -560,9 +574,10 @@ Page({
     // 如果手指在 350ms 内抬起，判定为普通点按，绝对不进入长按状态与震动！
     // 只有按住超过 350ms，才正式确认长按意图并展示水波纹与倒计时！
     this.longPressDetectTimer = setTimeout(() => {
+      this.pressStartTime = Date.now();
       this.setData({
         isPressing: true,
-        pressPercent: 0,
+        pressPercent: 100,
         pressRemaining: 5
       });
 
@@ -571,17 +586,16 @@ Page({
       const totalMs = 5000;
       this.pressTimer = setInterval(() => {
         const elapsed = Date.now() - this.pressStartTime;
-        const percent = Math.min(100, Math.floor((elapsed / totalMs) * 100));
         const remaining = Math.max(0, Math.ceil((totalMs - elapsed) / 1000));
 
-        if (remaining !== this.data.pressRemaining && remaining > 0) {
-          wx.vibrateShort({ type: 'light' });
+        if (remaining !== this.data.pressRemaining) {
+          if (remaining > 0) {
+            wx.vibrateShort({ type: 'light' });
+          }
+          this.setData({
+            pressRemaining: remaining
+          });
         }
-
-        this.setData({
-          pressPercent: percent,
-          pressRemaining: remaining
-        });
 
         if (elapsed >= totalMs) {
           // 满 5 秒，成功解锁！
@@ -689,14 +703,15 @@ Page({
     }, workStatus));
 
     let content = `下班打卡成功：${timeStr}`;
+    const restText = attendance.formatRestMinutes((settings && settings.weekdayRestMinutes) || 60);
     if (isWeekend) {
       content += `\n🌟 周末累计加班：${evaluated.overtimeText} (中午及晚间休息全额计入)`;
     } else {
       content += `\n今日工作工时：${evaluated.workText}`;
       if (evaluated.overtimeMinutes > 0) {
-        content += `\n🌟 工作日加班：${evaluated.overtimeText} (下班后休息1小时后起算)`;
+        content += `\n🌟 工作日加班：${evaluated.overtimeText} (下班后休息${restText}后起算)`;
       } else {
-        content += `\n(下班后休息1小时内，未产生加班时长)`;
+        content += `\n(下班后休息${restText}内，未产生加班时长)`;
       }
     }
 
@@ -736,6 +751,14 @@ Page({
     this.setData({ editSignOutTime: e.detail.value });
   },
 
+  clearEditSignIn() {
+    this.setData({ editSignInTime: '' });
+  },
+
+  clearEditSignOut() {
+    this.setData({ editSignOutTime: '' });
+  },
+
   onEditRemarkChange(e) {
     this.setData({ editRemark: e.detail.value });
   },
@@ -749,6 +772,19 @@ Page({
         icon: 'none'
       });
       return;
+    }
+
+    if (editSignInTime && editSignOutTime) {
+      const inMins = attendance.timeStrToMinutes(editSignInTime);
+      const outMins = attendance.timeStrToMinutes(editSignOutTime);
+      if (outMins <= inMins) {
+        wx.showToast({
+          title: '下班打卡时间须晚于上班时间',
+          icon: 'none',
+          duration: 2500
+        });
+        return;
+      }
     }
 
     if ((editSignInTime && attendance.isRestrictedPunchTime(editSignInTime)) || (editSignOutTime && attendance.isRestrictedPunchTime(editSignOutTime))) {

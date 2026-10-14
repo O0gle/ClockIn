@@ -117,7 +117,7 @@
       <view class="detail-item">
         <text class="detail-label">预计下班</text>
         <text class="detail-val">{{selectedDayRecord.expectedSignOutTime || '--:--'}}</text>
-        <text class="detail-sub">{{selectedDayRecord.isWeekend ? '全计加班' : '弹性满7.5h'}}</text>
+        <text class="detail-sub">{{selectedDayRecord.isWeekend ? '全计加班' : '弹性满' + (standardWorkHoursShort || '7.5h')}}</text>
       </view>
       <view class="detail-item">
         <text class="detail-label">下班打卡</text>
@@ -245,7 +245,10 @@
       </view>
 
       <view class="form-item">
-        <text class="form-label">上班打卡时间</text>
+        <view class="label-with-action">
+          <text class="form-label">上班打卡时间</text>
+          <text class="clear-time-btn" wx:if="{{editSignInTime}}" bindtap="clearEditSignIn">清空</text>
+        </view>
         <picker mode="time" value="{{editSignInTime}}" bindchange="onEditSignInChange">
           <view class="picker-input">
             <text class="{{editSignInTime ? 'picker-val' : 'picker-placeholder'}}">{{editSignInTime || '选择时间 (如 08:30)'}}</text>
@@ -255,7 +258,10 @@
       </view>
 
       <view class="form-item">
-        <text class="form-label">下班打卡时间</text>
+        <view class="label-with-action">
+          <text class="form-label">下班打卡时间</text>
+          <text class="clear-time-btn" wx:if="{{editSignOutTime}}" bindtap="clearEditSignOut">清空</text>
+        </view>
         <picker mode="time" value="{{editSignOutTime}}" bindchange="onEditSignOutChange">
           <view class="picker-input">
             <text class="{{editSignOutTime ? 'picker-val' : 'picker-placeholder'}}">{{editSignOutTime || '选择时间 (如 18:00)'}}</text>

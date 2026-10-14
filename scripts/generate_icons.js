@@ -60,10 +60,11 @@ function createPNG(width, height, drawFn) {
   }
 
   const ihdrChunk = makeChunk('IHDR', ihdrData);
+  const srgbChunk = makeChunk('sRGB', Buffer.from([0]));
   const idatChunk = makeChunk('IDAT', compressed);
   const iendChunk = makeChunk('IEND', Buffer.alloc(0));
 
-  return Buffer.concat([signature, ihdrChunk, idatChunk, iendChunk]);
+  return Buffer.concat([signature, ihdrChunk, srgbChunk, idatChunk, iendChunk]);
 }
 
 const SIZE = 81; // 微信官方推荐尺寸 81x81

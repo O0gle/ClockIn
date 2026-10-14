@@ -316,9 +316,20 @@
   bottom: 0;
   left: 0;
   right: 0;
+  height: 0%;
   background: linear-gradient(to top, rgba(245, 158, 11, 0.8), rgba(251, 191, 36, 0.5));
   z-index: 1;
-  transition: height 0.05s linear;
+  transition: height 0.15s ease-out;
+}
+
+.press-progress-wave.wave-active-3s {
+  height: 100%;
+  transition: height 3s linear;
+}
+
+.press-progress-wave.wave-active-5s {
+  height: 100%;
+  transition: height 5s linear;
 }
 
 .text-pressing {
@@ -793,6 +804,25 @@
   color: #475569;
   font-weight: 500;
   margin-bottom: 12rpx;
+}
+
+.label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12rpx;
+}
+
+.label-row .form-label {
+  margin-bottom: 0;
+}
+
+.clear-time-btn {
+  font-size: 24rpx;
+  color: #dc2626;
+  padding: 4rpx 12rpx;
+  background: #fef2f2;
+  border-radius: 8rpx;
 }
 
 .picker-input {

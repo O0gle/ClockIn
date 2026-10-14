@@ -106,6 +106,8 @@ Page({
     // 动态工作日下班休息时长文案联动
     const restDurationText = attendance.formatRestMinutes(settings.weekdayRestMinutes || 60);
     const restTipText = `工作日下班休息${restDurationText}起算 / 周末及节假日全计加班`;
+    const stdMins = settings.standardWorkMinutes || 450;
+    const standardWorkHoursShort = `${attendance.formatHoursDecimal(stdMins).replace(/\.0$/, '')}h`;
 
     // 基于内存记录构建日历网格
     const calendarDays = this.buildCalendarDays(currentYear, currentMonth, recordsMap, settings);
@@ -118,7 +120,8 @@ Page({
       calendarDays,
       selectedDayRecord: dayRecord,
       restDurationText,
-      restTipText
+      restTipText,
+      standardWorkHoursShort
     });
   },
 
@@ -358,6 +361,14 @@ Page({
     this.setData({ editSignOutTime: e.detail.value });
   },
 
+  clearEditSignIn() {
+    this.setData({ editSignInTime: '' });
+  },
+
+  clearEditSignOut() {
+    this.setData({ editSignOutTime: '' });
+  },
+
   onEditRemarkChange(e) {
     this.setData({ editRemark: e.detail.value });
   },
@@ -370,6 +381,19 @@ Page({
         icon: 'none'
       });
       return;
+    }
+
+    if (editSignInTime && editSignOutTime) {
+      const inMins = attendance.timeStrToMinutes(editSignInTime);
+      const outMins = attendance.timeStrToMinutes(editSignOutTime);
+      if (outMins <= inMins) {
+        wx.showToast({
+          title: '下班打卡时间须晚于上班时间',
+          icon: 'none',
+          duration: 2500
+        });
+        return;
+      }
     }
 
     if ((editSignInTime && attendance.isRestrictedPunchTime(editSignInTime)) || (editSignOutTime && attendance.isRestrictedPunchTime(editSignOutTime))) {

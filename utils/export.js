@@ -4,6 +4,16 @@
 
 const attendance = require('./attendance.js');
 
+function escapeHtml(val) {
+  if (val === null || val === undefined) return '';
+  return String(val)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 /**
  * 生成符合 Microsoft Excel 规范的表格 (.xls)
  * 特点：自带 charset=UTF-8，强制 mso-number-format:"\@" 文本格式，绝不乱码，wx.openDocument 原生支持！
@@ -19,7 +29,7 @@ function generateXlsHtml(title, records) {
     <x:ExcelWorkbook>
       <x:ExcelWorksheets>
         <x:ExcelWorksheet>
-          <x:Name>${title || '考勤报表'}</x:Name>
+          <x:Name>${escapeHtml(title || '考勤报表')}</x:Name>
           <x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions>
         </x:ExcelWorksheet>
       </x:ExcelWorksheets>
@@ -54,18 +64,18 @@ function generateXlsHtml(title, records) {
 
   if (records && records.length > 0) {
     records.forEach(r => {
-      const dateType = r.isWeekend ? '周末' : '工作日';
-      const signIn = r.signInTime || '--:--';
-      const signOut = r.signOutTime || '--:--';
-      const expectedOut = r.expectedSignOutTime || '--:--';
-      const workHours = r.workHours || '0.0';
-      const otHours = r.overtimeHours || '0.0';
-      const statusText = r.summaryStatusText || '';
-      const remark = r.remark || '';
+      const dateType = escapeHtml(r.dayTypeName || (r.isWeekend ? '周末' : '工作日'));
+      const signIn = escapeHtml(r.signInTime || '--:--');
+      const signOut = escapeHtml(r.signOutTime || '--:--');
+      const expectedOut = escapeHtml(r.expectedSignOutTime || '--:--');
+      const workHours = escapeHtml(r.workHours || '0.0');
+      const otHours = escapeHtml(r.overtimeHours || '0.0');
+      const statusText = escapeHtml(r.summaryStatusText || '');
+      const remark = escapeHtml(r.remark || '');
       const trClass = r.isWeekend ? ' class="tag-weekend"' : (r.overtimeMinutes > 0 ? ' class="tag-ot"' : '');
 
       html += `      <tr${trClass}>
-        <td>${r.date}</td>
+        <td>${escapeHtml(r.date)}</td>
         <td>${dateType}</td>
         <td>${signIn}</td>
         <td>${signOut}</td>

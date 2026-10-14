@@ -762,6 +762,18 @@
   margin-bottom: 12rpx;
 }
 
+.label-with-action .form-label {
+  margin-bottom: 0;
+}
+
+.clear-time-btn {
+  font-size: 24rpx;
+  color: #dc2626;
+  padding: 4rpx 12rpx;
+  background: #fef2f2;
+  border-radius: 8rpx;
+}
+
 .toggle-pwd-link {
   font-size: 22rpx;
   color: #1677ff;

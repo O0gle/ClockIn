@@ -49,12 +49,12 @@
             bindtouchend="handleInTouchEnd"
             bindtouchcancel="handleInTouchEnd">
         <!-- 长按水波纹上升进度遮罩 -->
-        <view class="press-progress-wave" wx:if="{{isInPressing}}" style="height: {{inPressPercent}}%;"></view>
+        <view class="press-progress-wave {{isInPressing ? 'wave-active-3s' : ''}}"></view>
         <view class="punch-inner">
           <text class="punch-title" wx:if="{{!isInPressing}}">{{isWeekend ? '长按3秒打卡' : '长按3秒上班'}}</text>
           <text class="punch-title text-pressing" wx:else>还需按住 {{inPressRemaining}}s</text>
           <text class="punch-time-hint">{{currentTimeText}}</text>
-          <text class="punch-rule-sub" wx:if="{{!isInPressing}}">{{isWeekend ? ((dayTypeName && dayTypeName !== '周末' ? dayTypeName : '周末') + '出勤全计加班') : '弹性区间 08:00 ~ 09:00'}}</text>
+          <text class="punch-rule-sub" wx:if="{{!isInPressing}}">{{isWeekend ? ((dayTypeName && dayTypeName !== '周末' ? dayTypeName : '周末') + '出勤全计加班') : '弹性区间 ' + (flexStartRangeText || '08:00 ~ 09:00')}}</text>
           <text class="punch-rule-sub text-pressing" wx:else>长按中... 满3秒打卡</text>
         </view>
       </view>
@@ -76,7 +76,7 @@
             bindtouchend="handleDoneTouchEnd"
             bindtouchcancel="handleDoneTouchEnd">
         <!-- 长按水波纹上升进度遮罩 -->
-        <view class="press-progress-wave" wx:if="{{isPressing}}" style="height: {{pressPercent}}%;"></view>
+        <view class="press-progress-wave {{isPressing ? 'wave-active-5s' : ''}}"></view>
         <view class="punch-inner">
           <text class="punch-title" wx:if="{{!isPressing}}">长按5秒打卡</text>
           <text class="punch-title text-pressing" wx:else>还需按住 {{pressRemaining}}s</text>
@@ -118,14 +118,14 @@
           <text class="badge badge-{{record.signInTagType || 'default'}}">{{record.signInStatusText || '未打卡'}}</text>
         </view>
         <text class="metric-value {{record.signInTime ? 'val-active' : ''}}">{{record.signInTime || '--:--'}}</text>
-        <text class="metric-hint">{{isWeekend ? '全天出勤计加班' : '基准 08:30 (±30m)'}}</text>
+        <text class="metric-hint">{{isWeekend ? '全天出勤计加班' : '基准 ' + (settings.baseStartTime || '08:30') + ' (±' + (settings.startFlexMinutes || 30) + 'm)'}}</text>
       </view>
 
       <!-- 2. 预计下班 -->
       <view class="metric-item">
         <view class="metric-top">
           <text class="metric-label">预计下班</text>
-          <text class="badge badge-info">{{isWeekend ? '自由下班' : '满7.5h工时'}}</text>
+          <text class="badge badge-info">{{isWeekend ? '自由下班' : '满' + (standardWorkHoursShort || '7.5h') + '工时'}}</text>
         </view>
         <text class="metric-value {{record.expectedSignOutTime ? 'val-active' : ''}}">{{record.expectedSignOutTime || '--:--'}}</text>
         <text class="metric-hint">{{isWeekend ? '出勤全程计入加班' : '满工时下班点'}}</text>
@@ -138,7 +138,7 @@
           <text class="badge badge-{{record.signOutTagType || 'default'}}">{{record.signOutStatusText || '未打卡'}}</text>
         </view>
         <text class="metric-value {{record.signOutTime ? 'val-active' : ''}}">{{record.signOutTime || '--:--'}}</text>
-        <text class="metric-hint">{{isWeekend ? '结算全天加班' : '基准 18:00 (±30m)'}}</text>
+        <text class="metric-hint">{{isWeekend ? '结算全天加班' : '基准 ' + (settings.baseEndTime || '18:00') + ' (±' + (settings.endFlexMinutes || 30) + 'm)'}}</text>
       </view>
 
       <!-- 4. 加班时长 (高亮突出) -->
@@ -157,7 +157,7 @@
       <view class="work-summary-left">
         <text class="summary-label">{{isWeekend ? ((dayTypeName && dayTypeName !== '周末' ? dayTypeName : '周末') + '累计加班：') : '实际出勤工时：'}}</text>
         <text class="summary-val">{{isWeekend ? record.overtimeText : record.workText}}</text>
-        <text class="summary-sub">{{isWeekend ? '(中午/晚间休息均已计入)' : '(已扣午休2小时)'}}</text>
+        <text class="summary-sub">{{isWeekend ? '(中午/晚间休息均已计入)' : '(已扣午休' + (lunchDurationText || '2小时') + ')'}}</text>
       </view>
       <view class="work-status-badge">
         <text class="badge badge-{{record.overtimeMinutes > 0 ? 'accent' : 'success'}}">{{isWeekend ? ((dayTypeName && dayTypeName !== '周末' ? dayTypeName : '周末') + '全额加班') : (record.overtimeMinutes > 0 ? '含工作日加班' : '工时正常')}}</text>
@@ -178,15 +178,15 @@
     <!-- 可视化时间轴示意图 -->
     <view class="timeline-visual">
       <view class="tl-segment tl-morning">
-        <text class="tl-title">08:00 ~ 09:00</text>
-        <text class="tl-desc">工作日弹性上班 (基准08:30)</text>
+        <text class="tl-title">{{flexStartRangeText || '08:00 ~ 09:00'}}</text>
+        <text class="tl-desc">工作日弹性上班 (基准{{settings.baseStartTime || '08:30'}})</text>
       </view>
       <view class="tl-segment tl-lunch">
-        <text class="tl-title">11:40 ~ 13:40</text>
-        <text class="tl-desc">午休2h (工作日扣除/周末计入)</text>
+        <text class="tl-title">{{settings.lunchStart || '11:40'}} ~ {{settings.lunchEnd || '13:40'}}</text>
+        <text class="tl-desc">午休{{lunchDurationText || '2小时'}} (工作日扣除/周末计入)</text>
       </view>
       <view class="tl-segment tl-evening">
-        <text class="tl-title">下班后休息1h</text>
+        <text class="tl-title">下班后休息{{restDurationText || '1h'}}</text>
         <text class="tl-desc">工作日休息后才开始计加班</text>
       </view>
       <view class="tl-segment tl-overtime">
@@ -233,7 +233,10 @@
 
     <view class="modal-body">
       <view class="form-item">
-        <text class="form-label">上班打卡时间</text>
+        <view class="label-row">
+          <text class="form-label">上班打卡时间</text>
+          <text class="clear-time-btn" wx:if="{{editSignInTime}}" bindtap="clearEditSignIn">清空</text>
+        </view>
         <picker mode="time" value="{{editSignInTime}}" bindchange="onEditSignInChange">
           <view class="picker-input">
             <text class="{{editSignInTime ? 'picker-val' : 'picker-placeholder'}}">{{editSignInTime || '点击选择时间'}}</text>
@@ -243,7 +246,10 @@
       </view>
 
       <view class="form-item">
-        <text class="form-label">下班打卡时间</text>
+        <view class="label-row">
+          <text class="form-label">下班打卡时间</text>
+          <text class="clear-time-btn" wx:if="{{editSignOutTime}}" bindtap="clearEditSignOut">清空</text>
+        </view>
         <picker mode="time" value="{{editSignOutTime}}" bindchange="onEditSignOutChange">
           <view class="picker-input">
             <text class="{{editSignOutTime ? 'picker-val' : 'picker-placeholder'}}">{{editSignOutTime || '点击选择时间 (可选)'}}</text>
@@ -258,7 +264,7 @@
       </view>
 
       <view class="rule-hint-box">
-        <text class="rule-hint-text">💡 提示：工作日下班后休息1小时起计加班；周六日中午与晚上休息均计入加班时长。</text>
+        <text class="rule-hint-text">💡 提示：工作日下班后休息{{restDurationText || '1h'}}起计加班；周末及节假日中午与晚上休息均计入加班时长。</text>
       </view>
     </view>
 
